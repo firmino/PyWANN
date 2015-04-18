@@ -7,65 +7,65 @@ class Retina:
 
     def __init__(self, data):
 
-            if type(data) is not list:
-                    raise Exception('data should be a multidimensional list')
-            if len(data) == 0:
-                    raise Exception('data in the list can not be void')
+        if type(data) is not list:
+                raise Exception('data should be a multidimensional list')
+        if len(data) == 0:
+                raise Exception('data in the list can not be void')
 
-            # converting matrix to a list of elements
-            raw_data = np.matrix(data)
-            number_of_elements = 1
-            for i in range(len(raw_data.shape)):
-                    number_of_elements *= raw_data.shape[i]  # multiply each dimension
+        # converting matrix to a list of elements
+        raw_data = np.matrix(data)
+        number_of_elements = 1
+        for i in range(len(raw_data.shape)):
+                number_of_elements *= raw_data.shape[i]  # multiply each dimension
 
-            # retina's data is a list of elements
-            self.__data = raw_data.reshape(1, number_of_elements).tolist()[0]
+        # retina's data is a list of elements
+        self.__data = raw_data.reshape(1, number_of_elements).tolist()[0]
 
-            # original dimensions of retina
-            self.__shape = raw_data.shape
+        # original dimensions of retina
+        self.__shape = raw_data.shape
 
     def get_data(self):
-            return self.__data
+        return self.__data
 
     def get_original_retina(self):
-            data = np.matrix(self.__data)
-            return data.reshape(self.__shape).tolist()
+        data = np.matrix(self.__data)
+        return data.reshape(self.__shape).tolist()
 
 
 class Memory:
 
     def __init__(self, num_bits=2, is_cummulative=False):
-            self.__data = {}
-            self.__is_cummulative = is_cummulative
+        self.__data = {}
+        self.__is_cummulative = is_cummulative
 
-            for i in range(2**num_bits):  # number of address positions 2 bits
-                    self.__data[i] = 0
+        for i in range(2**num_bits):  # number of address positions 2 bits
+                self.__data[i] = 0
 
     def get_memory_data(self):
-            return self.__data
+        return self.__data
 
     def add_value(self, addr, value=1):
 
-            if type(addr) != list:
-                    raise Exception('address is not a valid list')
+        if type(addr) != list:
+                raise Exception('address is not a valid list')
 
-            if len(addr) > len(self.__data):
-                    raise Exception('number of the bits of address are bigger than max size')
+        if len(addr) > len(self.__data):
+                raise Exception('number of the bits of address are bigger than max size')
 
-            int_position = self.__list_to_int(addr)
+        int_position = self.__list_to_int(addr)
 
-            if self.__is_cummulative:
-                    self.__data[int_position] += value
-            else:
-                    self.__data[int_position] = value
+        if self.__is_cummulative:
+                self.__data[int_position] += value
+        else:
+                self.__data[int_position] = value
 
     def get_value(self, addr):
-            int_position = self.__list_to_int(addr)
-            return self.__data[int_position]
+        int_position = self.__list_to_int(addr)
+        return self.__data[int_position]
 
     def __list_to_int(self, addr_list):
-            reverse_list = addr_list[-1::-1]
-            return sum([(2**i*reverse_list[i]) for i in range(len(reverse_list))])
+        reverse_list = addr_list[-1::-1]
+        return sum([(2**i*reverse_list[i]) for i in range(len(reverse_list))])
 
 
 class Discriminator:
