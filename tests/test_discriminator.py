@@ -53,7 +53,7 @@ class TestDiscriminator(unittest.TestCase):
 
         # example of T classes in a grig of 3x3
         data1 = [[1, 1, 1],
-                 [0, 0, 0],
+                 [0, 1, 0],
                  [0, 3, 0]]
 
         data2 = [[4, 4, 4],
@@ -87,6 +87,7 @@ class TestDiscriminator(unittest.TestCase):
         # we have to find 1 in all memories positions
 
         is_corrected_mapped = True
+
         for key in d.get_memories_mapping():
             posi_0 = d.get_memories_mapping()[key][0]  # get first mapping position
             posi_1 = d.get_memories_mapping()[key][1]  # get second mapping position
@@ -128,6 +129,52 @@ class TestDiscriminator(unittest.TestCase):
                 break
 
         self.assertTrue(is_corrected_mapped)
+
+    def test_classifier_positive(self):
+        example_t1 = [[1, 1, 1],
+                      [0, 1, 0],
+                      [0, 1, 0]]
+
+        example_t2 = [[1, 1, 1],
+                      [0, 1, 0],
+                      [0, 1, 0]]
+
+        r1 = Retina(example_t1)
+        r2 = Retina(example_t2)
+
+        d = Discriminator(9, 3)
+        d.training([r1, r2])
+
+        test_positive = [[1, 1, 1],
+                         [0, 1, 0],
+                         [0, 1, 0]]
+
+        t_test = Retina(test_positive)
+
+        self.assertEqual(d.classifier(t_test), 3)
+
+    def test_classifier_negative(self):
+        example_t1 = [[1, 1, 1],
+                      [0, 1, 0],
+                      [0, 1, 0]]
+
+        example_t2 = [[1, 1, 1],
+                      [0, 1, 0],
+                      [0, 1, 0]]
+
+        r1 = Retina(example_t1)
+        r2 = Retina(example_t2)
+
+        d = Discriminator(9, 3)
+        d.training([r1, r2])
+
+        test_positive = [[0, 1, 0],
+                         [1, 1, 1],
+                         [0, 1, 0]]
+
+        t_test = Retina(test_positive)
+
+        self.assertNotEqual(d.classifier(t_test), 3)
 
 
 if __name__ == "__main__":

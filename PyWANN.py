@@ -122,23 +122,22 @@ class Discriminator:
                         addr_list.append(1)
                     else:
                         addr_list.append(0)
-                
+
                 self.__memories[memory_key].add_value(addr_list, 1)  # add value 1 into the positon (defined by addr_list)
 
     def classifier(self, retina):
-        
         result = 0
         for memory_key in self.__memories_mapping:  # for each mapping position in retina, each position of n bits correspond an only one memory
             addr_list = []
             position_list = self.__memories_mapping[memory_key]  # get the mapping positions (size is equal of number of address in the memory)
-            
+
             for position in position_list:
                 if retina.get_data()[position] > 0:
                     addr_list.append(1)
                 else:
                     addr_list.append(0)
 
-            result += self.__memories[key].get_value(addr_list)
+            result += self.__memories[memory_key].get_value(addr_list)
 
         return result
 
@@ -150,13 +149,6 @@ class Wisard:
 
     def __init__(self):
         pass
-
-
-class MentalImage:
-
-    def __init__(self):
-        pass
-
 
 class Bleaching:
 
