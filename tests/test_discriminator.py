@@ -10,21 +10,22 @@ class TestDiscriminator(unittest.TestCase):
         self.assertIsNotNone(d)
 
     def test_check_correct_number_of_memories_exact_mapping(self):
-        d = Discriminator(12, 3) # retina lenght is a multiple of number of address' bits
+        # retina lenght is a multiple of number of address' bits
+        d = Discriminator(12, 3)
         num_mem = len(d.get_memories())
         self.assertEquals(num_mem, 4)
 
     def test_check_correct_number_of_memories_not_exact_mapping(self):
-        d = Discriminator(14, 3) # retina lenght is not a multiple of number of address'
-                                 # bits
+        # retina lenght is not a multiple of number of address' bits
+        d = Discriminator(14, 3)
         num_mem = len(d.get_memories())
-        self.assertEquals(num_mem, 5) # a addicional memory
+        self.assertEquals(num_mem, 5)  # a addicional memory
 
     def test_random_mapping(self):
         d = Discriminator(12, 3)
 
         is_organized = True
-        list_organized_positions = str.join("", map(str, range(12)) )
+        list_organized_positions = str.join("", map(str, range(12)))
 
         str_key = ""
         for memory_mapping in d._Discriminator__memories_mapping.values():
@@ -36,10 +37,11 @@ class TestDiscriminator(unittest.TestCase):
         self.assertFalse(is_organized)
 
     def test_mapping_without_randomize_position(self):
-        d = Discriminator(12, 3, memories_values_cummulative=False, randomize_positions=False)
+        d = Discriminator(12, 3, memories_values_cummulative=False,
+                          randomize_positions=False)
 
         is_organized = True
-        list_organized_positions = str.join("", map(str, range(12)) )
+        list_organized_positions = str.join("", map(str, range(12)))
 
         str_key = ""
         for memory_mapping in d._Discriminator__memories_mapping.values():
@@ -49,7 +51,6 @@ class TestDiscriminator(unittest.TestCase):
             is_organized = False
 
         self.assertTrue(is_organized)
-
 
     def test_training_no_cumulative(self):
 
@@ -66,8 +67,10 @@ class TestDiscriminator(unittest.TestCase):
         r1 = Retina(data1)
         r2 = Retina(data2)
 
-        d = Discriminator(9, 5) # will generate two memories (one with 5 bits and another
-                                # with 4 bits of addressing)
+        # will generate two memories (one with 5 bits and another with 4 bits
+        # of addressing)
+        d = Discriminator(9, 5)
+
         d.training([r1, r2])
 
         # testing correct mapping
@@ -86,18 +89,19 @@ class TestDiscriminator(unittest.TestCase):
         # | mem-2  |  [4,2,5] | [0 1 0]      | [1 1 0]
         # | mem-3  |  [0,1,6] | [1 1 0]      | [1 1 0]
         #
-        # If we apply the mapping process for the expected result (that represents the
-        # same class) we have to find 1 in all memories positions
+        # If we apply the mapping process for the expected result (that
+        # represents the same class) we have to find 1 in all memories
+        # positions
 
         is_corrected_mapped = True
 
         for key in d.get_memories_mapping():
 
             if(len(d.get_memories_mapping()[key]) == 4):
-                posi_0 = d.get_memories_mapping()[key][0]  # get first mapping position
-                posi_1 = d.get_memories_mapping()[key][1]  # get second mapping position
-                posi_2 = d.get_memories_mapping()[key][2]  # get third mapping position
-                posi_3 = d.get_memories_mapping()[key][3]  # get fourth mapping position
+                posi_0 = d.get_memories_mapping()[key][0]  # get 1th position
+                posi_1 = d.get_memories_mapping()[key][1]  # get 2th position
+                posi_2 = d.get_memories_mapping()[key][2]  # get 3th position
+                posi_3 = d.get_memories_mapping()[key][3]  # get 4th position
 
                 addr = [expected_result[posi_0], expected_result[posi_1],
                         expected_result[posi_2], expected_result[posi_3]]
@@ -106,11 +110,11 @@ class TestDiscriminator(unittest.TestCase):
                     break
 
             if(len(d.get_memories_mapping()[key]) == 5):
-                posi_0 = d.get_memories_mapping()[key][0]  # get first mapping position
-                posi_1 = d.get_memories_mapping()[key][1]  # get second mapping position
-                posi_2 = d.get_memories_mapping()[key][2]  # get third mapping position
-                posi_3 = d.get_memories_mapping()[key][3]  # get fourth mapping position
-                posi_4 = d.get_memories_mapping()[key][4]  # get fifth mapping position
+                posi_0 = d.get_memories_mapping()[key][0]  # get 1th position
+                posi_1 = d.get_memories_mapping()[key][1]  # get 2th position
+                posi_2 = d.get_memories_mapping()[key][2]  # get 3th position
+                posi_3 = d.get_memories_mapping()[key][3]  # get 4th position
+                posi_4 = d.get_memories_mapping()[key][4]  # get 5th position
 
                 addr = [expected_result[posi_0], expected_result[posi_1],
                         expected_result[posi_2], expected_result[posi_3],
@@ -140,8 +144,8 @@ class TestDiscriminator(unittest.TestCase):
         d = Discriminator(9, 3, memories_values_cummulative=True)
         d.training([r1, r2])
 
-        # as all positions in retinas are selected, it is just necessary check if
-        # memories addressed by 1,1,1 have value 2
+        # as all positions in retinas are selected, it is just necessary check
+        # if memories addressed by 1,1,1 have value 2
 
         is_corrected_mapped = True
         for memory in d.get_memories().values():
