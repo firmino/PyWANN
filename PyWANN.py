@@ -54,6 +54,7 @@ class Memory:
             raise Exception('number of the bits of address are bigger \
                              than max size')
 
+        # bit list to int
         int_position = self.__list_to_int(addr)
 
         if self.__is_cummulative:
@@ -72,9 +73,8 @@ class Memory:
 
 class Discriminator:
 
-    def __init__(self, retina_length, num_bits_addr=2,
-                 memories_values_cummulative=False,
-                 randomize_positions=True):
+    def __init__(self, retina_length, num_bits_addr=2, position_list,
+                 memories_values_cummulative=False):
 
         self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
@@ -87,14 +87,7 @@ class Discriminator:
             self.__memories[i] = Memory(self.__num_bits_addr,
                                         memories_values_cummulative)
 
-        # mapping random positions (if randomize_positions is True)
         self.__memories_mapping = {}
-
-        # generating all possible positions
-        position_list = range(retina_length)
-
-        if randomize_positions:  # random positions to mapping aleatory
-            rand.shuffle(position_list)
 
         for i in range(num_mem):
             init = i * num_bits_addr
@@ -156,7 +149,7 @@ class Discriminator:
                 self.__memories[memory_key].add_value(addr_list, 1)
 
     def classifier(self, retina):
-        result = 0
+        result = []
 
         # for each mapping position in retina, each position of n bits
         # correspond an only one memory
@@ -173,7 +166,7 @@ class Discriminator:
                 else:
                     addr_list.append(0)
 
-            result += self.__memories[memory_key].get_value(addr_list)
+            result.append(self.__memories[memory_key].get_value(addr_list))
 
         return result
 
@@ -183,11 +176,27 @@ class Discriminator:
 
 class Wisard:
 
-    def __init__(self, num_bits_addr=2, bleaching=None, is_cumulative=False):
+    def __init__(self, num_bits_addr=2,
+                 bleaching=None,
+                 confidence_threshold=0.3,
+                 is_cumulative=False,
+                 randomize_positions=True):
+
         self.__num_bits_addr = num_bits_addr
+        self.__confidence_threshold = confidence_threshold
         self.__is_cumulative = is_cumulative
-        self.__bleaching_method = bleaching
+        self.__bleaching = bleaching
         self.__discriminators = {}
+
+        # generating all possible positions
+        position_list = range(retina_length)
+
+        # mapping random positions (if randomize_positions is True)
+        if randomize_positions:  # random positions to mapping aleatory
+            rand.shuffle(position_list)
+
+        self.__position_list = position_list
+
 
     def add_discrimator(self, name, training_set):
 
@@ -202,24 +211,53 @@ class Wisard:
         # creating discriminator
         self.__discriminators[name] = Discriminator(retina_size,
                                                     self.__num_bits_addr,
+                                                    self.__position_list,
                                                     self.__is_cumulative)
 
         # training discriminator
         self.__discriminators[name].training(retina_training_set)
 
-    def classifier(example):
-        result = {}
 
-        # become example a retina
+    def classifier(self, example):
+        result = {}  # classes and values
+        memory_result = {}  # for each class the memories values obtained
+
+        # transform example into a retina
         r = Retina(example)
 
-        for name in self.__discriminators:
-            result[name] = self.__discriminators[name].classifier(r)
+        for class_name in self.__discriminators:
 
-        if self.__bleaching_method is not None:
-            result = self.__bleaching_method.apply(result)
+            # for each class the memorie values obtained
+            memory_result[class_name] = self.__discriminators[name]
+                                            .classifier(r)
+
+            # for each class, store the value
+            result[class_name] = sum(memory_result[class_name])
+
+        # applying bleaching method if exist
+        if self.__bleaching is not None:
+            # calculate the confidence for  results
+            cfd = self.__calc_result_confidence(result)
+
+            # apply bleaching method for all memories values
+            if cdf < self.__confidence_threshold:
+                self.__bleaching.run(result, memory_result)
 
         return result
+
+
+    def __calc_result_confidence(self, list_of_results):
+
+        # getting max value
+        max_value = max(v)
+
+        # getting second max value
+        second_max = max( n for n in v if n != max_value)
+
+        #calculating confidence value
+        c = (max_value - second_max)/ float(max_value)
+
+        return c
 
 
 class Bleaching:
