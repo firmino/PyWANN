@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import numpy as np
 import random as rand
 
 
@@ -7,29 +6,32 @@ class Retina:
 
     def __init__(self, data):
 
+        self.__data = None
+
         if type(data) is not list:
-            raise Exception('data should be a multidimensional list')
+            raise Exception('data must be a multidimensional list')
+
         if len(data) == 0:
             raise Exception('data in the list can not be void')
 
-        # converting matrix to a list of elements
-        raw_data = np.matrix(data)
-        number_of_elements = 1
-        for i in range(len(raw_data.shape)):
-            number_of_elements *= raw_data.shape[i]  # multiply each dimension
+        if isinstance(data[0][0], list):  # check if data is bigger than 2
+            raise Exception('data must be 1-dimensional or 2-dimensional')
 
-        # retina's data is a list of elements
-        self.__data = raw_data.reshape(1, number_of_elements).tolist()[0]
+        # check if data is 2-dimensional
+        if isinstance(data[0], list):
+            aux = []
+            # converting matrix to a list of elements
+            for i in range(len(data)):  # for each line
+                for j in range(len(data[0])):  # for each column
+                    aux.append(data[i][j])
+            self.__data = aux
 
-        # original dimensions of retina
-        self.__shape = raw_data.shape
+        # if is data is 1-dimensional
+        else:
+            self.__data = data
 
     def get_data(self):
         return self.__data
-
-    def get_original_retina(self):
-        data = np.matrix(self.__data)
-        return data.reshape(self.__shape).tolist()
 
 
 class Memory:
@@ -73,34 +75,37 @@ class Memory:
 
 class Discriminator:
 
-    def __init__(self, retina_length, num_bits_addr=2, position_list,
+    def __init__(self,
+                 retina_length,
+                 num_bits_addr,
+                 position_list,
                  memories_values_cummulative=False):
 
         self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
+        self.__memories = {}
+        self.__memories_mapping = {}
 
+        # calculating the number of memories
         num_mem = retina_length // num_bits_addr
 
         # creating list of memories
-        self.__memories = {}
         for i in range(num_mem):
             self.__memories[i] = Memory(self.__num_bits_addr,
                                         memories_values_cummulative)
 
-        self.__memories_mapping = {}
-
+        # mapping positions for each memory
         for i in range(num_mem):
             init = i * num_bits_addr
             end = init + num_bits_addr
             self.__memories_mapping[i] = position_list[init:end]
 
         # if the retina's length is not a multiple of number of bits of
-        # addressing, is necessary create a smaller memory to map all positions
-        # this memory will have the number of address bits equal to module of
-        # number of memories and number of bits of addressing
+        # addressing, it is necessary create a smaller memory to map all
+        # positions. This memory will have the number of address bits equal to
+        # module of number of memories for number of bits of addressing
         self.__num_bits_addr_final = retina_length % num_bits_addr
         if self.__num_bits_addr_final > 0:
-
             # adding in the last position of the list (position equal
             # num_mem)
             self.__memories[num_mem] = Memory(self.__num_bits_addr_final,
@@ -127,7 +132,7 @@ class Discriminator:
     def training(self, list_positive_retina):
         for retina in list_positive_retina:  # for each element of training
 
-            # for each mapping position in retina, each position of n bits
+            # for each mapping position in retina, each position has n bits
             # correspond an only one memory
             for memory_key in self.__memories_mapping:
 
@@ -197,7 +202,6 @@ class Wisard:
 
         self.__position_list = position_list
 
-
     def add_discrimator(self, name, training_set):
 
         # transform training_set(multidimensional matrix) to type Retina
@@ -217,7 +221,6 @@ class Wisard:
         # training discriminator
         self.__discriminators[name].training(retina_training_set)
 
-
     def classifier(self, example):
         result = {}  # classes and values
         memory_result = {}  # for each class the memories values obtained
@@ -228,7 +231,7 @@ class Wisard:
         for class_name in self.__discriminators:
 
             # for each class the memorie values obtained
-            memory_result[class_name] = self.__discriminators[name]
+            memory_result[class_name] = self.__discriminators[name] \
                                             .classifier(r)
 
             # for each class, store the value
@@ -245,17 +248,16 @@ class Wisard:
 
         return result
 
-
     def __calc_result_confidence(self, list_of_results):
 
         # getting max value
         max_value = max(v)
 
         # getting second max value
-        second_max = max( n for n in v if n != max_value)
+        second_max = max(n for n in v if n != max_value)
 
-        #calculating confidence value
-        c = (max_value - second_max)/ float(max_value)
+        # calculating confidence value
+        c = (max_value - second_max) / float(max_value)
 
         return c
 

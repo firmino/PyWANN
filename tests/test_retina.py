@@ -21,14 +21,13 @@ class TestRetina(unittest.TestCase):
         r = Retina(data)
         self.assertEquals(r.get_data(), [1, 1, 1, 2, 2, 2, 3, 3, 3])
 
-    def test_get_original_retina(self):
+    def test_dimensional_bigger_than_two(self):
 
-        data = [[1, 1, 1],
-                [2, 2, 2],
-                [3, 3, 3]]
+        data = [[[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0]]]
 
-        r = Retina(data)
-        self.assertEquals(r.get_original_retina(), data)
+        self.assertRaises(Exception, Retina, data)
 
 if __name__ == "__main__":
 

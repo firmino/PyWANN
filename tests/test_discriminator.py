@@ -5,52 +5,28 @@ from PyWANN import Discriminator, Retina
 
 class TestDiscriminator(unittest.TestCase):
 
+    def setUp(self):
+
+        # creating a default mapping for all discriminators tests
+        self.mapping_positions_9 = range(9)
+        self.mapping_positions_14 = range(14)
+
     def test_create_discriminator(self):
-        d = Discriminator(9, 3)
+
+        d = Discriminator(9, 3, self.mapping_positions_9)
         self.assertIsNotNone(d)
 
     def test_check_correct_number_of_memories_exact_mapping(self):
         # retina lenght is a multiple of number of address' bits
-        d = Discriminator(12, 3)
+        d = Discriminator(12, 3, self.mapping_positions_9)
         num_mem = len(d.get_memories())
         self.assertEquals(num_mem, 4)
 
-    def test_check_correct_number_of_memories_not_exact_mapping(self):
+    def test_check_correct_number_of_memories_not_mult_num_bits(self):
         # retina lenght is not a multiple of number of address' bits
-        d = Discriminator(14, 3)
+        d = Discriminator(14, 3, self.mapping_positions_14)
         num_mem = len(d.get_memories())
         self.assertEquals(num_mem, 5)  # a addicional memory
-
-    def test_random_mapping(self):
-        d = Discriminator(12, 3)
-
-        is_organized = True
-        list_organized_positions = str.join("", map(str, range(12)))
-
-        str_key = ""
-        for memory_mapping in d._Discriminator__memories_mapping.values():
-            str_key += str.join("", map(str, memory_mapping))
-
-        if str_key not in list_organized_positions:
-            is_organized = False
-
-        self.assertFalse(is_organized)
-
-    def test_mapping_without_randomize_position(self):
-        d = Discriminator(12, 3, memories_values_cummulative=False,
-                          randomize_positions=False)
-
-        is_organized = True
-        list_organized_positions = str.join("", map(str, range(12)))
-
-        str_key = ""
-        for memory_mapping in d._Discriminator__memories_mapping.values():
-            str_key += str.join("", map(str, memory_mapping))
-
-        if str_key not in list_organized_positions:
-            is_organized = False
-
-        self.assertTrue(is_organized)
 
     def test_training_no_cumulative(self):
 
@@ -69,7 +45,7 @@ class TestDiscriminator(unittest.TestCase):
 
         # will generate two memories (one with 5 bits and another with 4 bits
         # of addressing)
-        d = Discriminator(9, 5)
+        d = Discriminator(9, 5, self.mapping_positions_9)
 
         d.training([r1, r2])
 
@@ -141,7 +117,8 @@ class TestDiscriminator(unittest.TestCase):
         r1 = Retina(data1)
         r2 = Retina(data2)
 
-        d = Discriminator(9, 3, memories_values_cummulative=True)
+        d = Discriminator(9, 3, self.mapping_positions_9,
+                          memories_values_cummulative=True)
         d.training([r1, r2])
 
         # as all positions in retinas are selected, it is just necessary check
@@ -168,7 +145,7 @@ class TestDiscriminator(unittest.TestCase):
         r1 = Retina(example_t1)
         r2 = Retina(example_t2)
 
-        d = Discriminator(9, 3)
+        d = Discriminator(9, 3, self.mapping_positions_9)
         d.training([r1, r2])
 
         test_positive = [[1, 1, 1],
@@ -177,7 +154,8 @@ class TestDiscriminator(unittest.TestCase):
 
         t_test = Retina(test_positive)
 
-        self.assertEqual(d.classifier(t_test), 3)
+        list_memories_result = d.classifier(t_test)
+        self.assertEqual(sum(list_memories_result), 3)
 
     def test_classifier_negative(self):
         example_t1 = [[1, 1, 1],
@@ -191,7 +169,7 @@ class TestDiscriminator(unittest.TestCase):
         r1 = Retina(example_t1)
         r2 = Retina(example_t2)
 
-        d = Discriminator(9, 3)
+        d = Discriminator(9, 3, self.mapping_positions_9)
         d.training([r1, r2])
 
         test_positive = [[0, 1, 0],
@@ -200,7 +178,8 @@ class TestDiscriminator(unittest.TestCase):
 
         t_test = Retina(test_positive)
 
-        self.assertNotEqual(d.classifier(t_test), 3)
+        list_memories_result = d.classifier(t_test)
+        self.assertNotEqual(sum(list_memories_result), 3)
 
 
 if __name__ == "__main__":
