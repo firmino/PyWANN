@@ -41,7 +41,7 @@ class Memory:
         self.__is_cummulative = is_cummulative
 
         # number of address positions 2 bits
-        for i in range(2**num_bits):
+        for i in xrange(2**num_bits):
             self.__data[i] = 0
 
     def get_memory_data(self):
@@ -90,12 +90,12 @@ class Discriminator:
         num_mem = retina_length // num_bits_addr
 
         # creating list of memories
-        for i in range(num_mem):
+        for i in xrange(num_mem):
             self.__memories[i] = Memory(self.__num_bits_addr,
                                         memories_values_cummulative)
 
         # mapping positions for each memory
-        for i in range(num_mem):
+        for i in xrange(num_mem):
             init = i * num_bits_addr
             end = init + num_bits_addr
             self.__memories_mapping[i] = position_list[init:end]
@@ -192,17 +192,10 @@ class Wisard:
         self.__is_cumulative = is_cumulative
         self.__bleaching = bleaching
         self.__discriminators = {}
+        self.__position_list = None
+        self.__randomize_positions = randomize_positions
 
-        # generating all possible positions
-        position_list = range(retina_length)
-
-        # mapping random positions (if randomize_positions is True)
-        if randomize_positions:  # random positions to mapping aleatory
-            rand.shuffle(position_list)
-
-        self.__position_list = position_list
-
-    def add_discrimator(self, name, training_set):
+    def add_discriminator(self, name, training_set):
 
         # transform training_set(multidimensional matrix) to type Retina
         retina_training_set = []
@@ -211,6 +204,10 @@ class Wisard:
 
         # getting the first retina to know the retina's size
         retina_size = len(retina_training_set[0].get_data())
+
+        # if there is not a mapping position defined
+        if self.__position_list is None:
+            self.__generate_position_list(retina_size)
 
         # creating discriminator
         self.__discriminators[name] = Discriminator(retina_size,
@@ -231,7 +228,7 @@ class Wisard:
         for class_name in self.__discriminators:
 
             # for each class the memorie values obtained
-            memory_result[class_name] = self.__discriminators[name] \
+            memory_result[class_name] = self.__discriminators[class_name] \
                                             .classifier(r)
 
             # for each class, store the value
@@ -247,6 +244,17 @@ class Wisard:
                 self.__bleaching.run(result, memory_result)
 
         return result
+
+    def __generate_position_list(self, retina_length):
+
+        # generating all possible positions
+        position_list = range(retina_length)
+
+        # mapping random positions (if randomize_positions is True)
+        if self.__randomize_positions:  # random positions to mapping aleatory
+            rand.shuffle(position_list)
+
+        self.__position_list = position_list
 
     def __calc_result_confidence(self, list_of_results):
 
