@@ -19,7 +19,7 @@ class TestRetina(unittest.TestCase):
                 [3, 3, 3]]
 
         r = Retina(data)
-        self.assertEquals(r.get_data(), [1, 1, 1, 2, 2, 2, 3, 3, 3])
+        self.assertEquals(r.get_data(), [1, 1, 1, 1, 1, 1, 1, 1, 1])
 
     def test_dimensional_bigger_than_two(self):
 

@@ -23,7 +23,8 @@ class Retina:
             # converting matrix to a list of elements
             for i in range(len(data)):  # for each line
                 for j in range(len(data[0])):  # for each column
-                    aux.append(data[i][j])
+                    value = 1 if data[i][j] > 0 else 0
+                    aux.append(value)
             self.__data = aux
 
         # if is data is 1-dimensional
@@ -182,9 +183,9 @@ class Discriminator:
 class Wisard:
 
     def __init__(self, num_bits_addr=2,
-                 bleaching=None,
                  confidence_threshold=0.3,
                  is_cumulative=False,
+                 bleaching=None,
                  randomize_positions=True):
 
         self.__num_bits_addr = num_bits_addr
@@ -194,6 +195,7 @@ class Wisard:
         self.__discriminators = {}
         self.__position_list = None
         self.__randomize_positions = randomize_positions
+        self.__confidence_threshold = confidence_threshold
 
     def add_discriminator(self, name, training_set):
 
@@ -236,12 +238,13 @@ class Wisard:
 
         # applying bleaching method if exist
         if self.__bleaching is not None:
-            # calculate the confidence for  results
-            cfd = self.__calc_result_confidence(result)
+            # calculate the confidence
+            cfd = Util.calc_confidence(result)
 
             # apply bleaching method for all memories values
-            if cdf < self.__confidence_threshold:
-                self.__bleaching.run(result, memory_result)
+            if cfd < self.__confidence_threshold:
+                result = self.__bleaching.run(memory_result,
+                                              self.__confidence_threshold)
 
         return result
 
@@ -256,21 +259,62 @@ class Wisard:
 
         self.__position_list = position_list
 
-    def __calc_result_confidence(self, list_of_results):
+class Bleaching:
 
+    def __init__(self, ini_b):
+        self.__initial_b = ini_b
+
+    def run(self, memory_result, confidence_threshold):
+        print memory_result
+        print "\n\n"
+
+        previous_result = {}  #  if it is not possible continue the method
+        result = {}
+
+        for class_name in memory_result:
+            result[class_name] = sum(memory_result[class_name])
+
+        previous_result = result
+        confidence = Util.calc_confidence(result)
+
+        b = self.__initial_b
+        while confidence < confidence_threshold:
+
+            # generating a new result list using bleaching
+            for class_name in memory_result:
+                previous_result = result
+
+                valid_values = [1 for x in memory_result[class_name] if x >= b]
+                result[class_name] = sum(valid_values)
+
+                print "class: "+str(class_name)
+                print valid_values
+
+            print "B: "+str(b)
+            print "###"*8
+
+            #recalculating confidence
+            try:
+                confidence = Util.calc_confidence(result)
+            except ZeroDivisionError, ValueError:
+                return previous_result
+
+            b += 1  # next value of b
+
+        return result
+
+
+class Util:
+
+    @staticmethod
+    def calc_confidence(list_of_results):
         # getting max value
-        max_value = max(v)
+        max_value = max(list_of_results.values())
 
         # getting second max value
-        second_max = max(n for n in v if n != max_value)
+        second_max = max(n for n in list_of_results.values() if n != max_value)
 
         # calculating confidence value
         c = (max_value - second_max) / float(max_value)
 
         return c
-
-
-class Bleaching:
-
-    def __init__(self):
-        pass
