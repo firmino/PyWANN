@@ -14,7 +14,9 @@ class Retina:
         if len(data) == 0:
             raise Exception('data in the list can not be void')
 
-        if isinstance(data[0][0], list):  # check if data is bigger than 2
+        if isinstance(data[0], list) and \
+           isinstance(data[0][0], list):  # check if data is bigger than 2
+
             raise Exception('data must be 1-dimensional or 2-dimensional')
 
         # check if data is 2-dimensional
@@ -183,19 +185,31 @@ class Discriminator:
 class Wisard:
 
     def __init__(self, num_bits_addr=2,
-                 confidence_threshold=0.3,
-                 is_cumulative=False,
-                 bleaching=None,
-                 randomize_positions=True):
+                 vacuum=False,
+                 bleaching=False,
+                 confidence_threshold=0.6,
+                 randomize_positions=True,
+                 default_bleaching_b_value=3):
 
         self.__num_bits_addr = num_bits_addr
         self.__confidence_threshold = confidence_threshold
-        self.__is_cumulative = is_cumulative
-        self.__bleaching = bleaching
+        self.__is_cumulative = False
+
         self.__discriminators = {}
         self.__position_list = None
         self.__randomize_positions = randomize_positions
         self.__confidence_threshold = confidence_threshold
+
+        self.__bleaching = None
+        self.__vacuum = None
+
+        if bleaching:
+            self.__is_cumulative = True
+            self.__bleaching = Bleaching(default_bleaching_b_value)
+
+        if vacuum:
+            self.__is_cumulative = True
+            self.__vacuum = Vacuum()
 
     def add_discriminator(self, name, training_set):
 
@@ -236,15 +250,14 @@ class Wisard:
             # for each class, store the value
             result[class_name] = sum(memory_result[class_name])
 
-        # applying bleaching method if exist
+        # applying bleaching method if it is selected
         if self.__bleaching is not None:
-            # calculate the confidence
-            cfd = Util.calc_confidence(result)
+            result = self.__bleaching.run(memory_result,
+                                          self.__confidence_threshold)
 
-            # apply bleaching method for all memories values
-            if cfd < self.__confidence_threshold:
-                result = self.__bleaching.run(memory_result,
-                                              self.__confidence_threshold)
+        # applying vacuum method if it is selected
+        if self.__vacuum is not None:
+            result = self.__vacuum.run(memory_result)
 
         return result
 
@@ -259,48 +272,65 @@ class Wisard:
 
         self.__position_list = position_list
 
+
 class Bleaching:
 
     def __init__(self, ini_b):
         self.__initial_b = ini_b
+        self.__error = 0.001
 
     def run(self, memory_result, confidence_threshold):
-        print memory_result
-        print "\n\n"
-
-        previous_result = {}  #  if it is not possible continue the method
+        b = self.__initial_b
+        original_result = {}  # if it is not possible continue the method
         result = {}
 
         for class_name in memory_result:
-            result[class_name] = sum(memory_result[class_name])
+            valid_values = [1 for x in memory_result[class_name] if x >= b]
+            result[class_name] = sum(valid_values)
 
-        previous_result = result
+        original_result = result.copy()
         confidence = Util.calc_confidence(result)
 
-        b = self.__initial_b
         while confidence < confidence_threshold:
-
             # generating a new result list using bleaching
             for class_name in memory_result:
-                previous_result = result
-
                 valid_values = [1 for x in memory_result[class_name] if x >= b]
                 result[class_name] = sum(valid_values)
 
-                print "class: "+str(class_name)
-                print valid_values
-
-            print "B: "+str(b)
-            print "###"*8
-
-            #recalculating confidence
-            try:
-                confidence = Util.calc_confidence(result)
-            except ZeroDivisionError, ValueError:
-                return previous_result
+            # recalculating confidence
+            confidence = Util.calc_confidence(result)
+            if confidence == -1:
+                return original_result
 
             b += 1  # next value of b
 
+        return result
+
+
+class Vacuum:
+
+    def run(self, list_of_memories):
+        result = {}
+        num_columns = len(list_of_memories.values()[0])
+        sum_list = [0]*num_columns
+
+        # sum all memories positions
+        for class_name in list_of_memories:
+            for column in xrange(num_columns):
+                sum_list[column] += list_of_memories[class_name][column]
+
+        # calculating the average for each position
+        avg = [0]*num_columns
+        for column in xrange(num_columns):
+            avg[column] = float(sum_list[column])/len(list_of_memories)
+
+        # applying the vacuumn in each memory
+        for class_name in list_of_memories:
+            sum_mem = 0
+            for column in xrange(num_columns):
+                if list_of_memories[class_name][column] > avg[column]:
+                    sum_mem += 1
+            result[class_name] = sum_mem
         return result
 
 
@@ -308,13 +338,23 @@ class Util:
 
     @staticmethod
     def calc_confidence(list_of_results):
-        # getting max value
-        max_value = max(list_of_results.values())
 
-        # getting second max value
-        second_max = max(n for n in list_of_results.values() if n != max_value)
+        try:
+            values = list_of_results.values()
 
-        # calculating confidence value
-        c = (max_value - second_max) / float(max_value)
+            # getting max value
+            max_value = max(values)
 
-        return c
+            # removing max from the list
+            values.remove(max_value)
+
+            # getting second max value
+            second_max = max(values)
+
+            # calculating confidence value
+            c = float(max_value - second_max) / float(max_value)
+
+            return c
+
+        except Exception, Error:
+            return -1
