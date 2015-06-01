@@ -172,7 +172,7 @@ class Discriminator:
             # for each position mapped get binary value (1 if position has
             # value positive and 0 otherwise)
             for position in position_list:
-                if positive_retina.get_data()> 0:
+                if positive_retina.get_data()[position]> 0:
                     addr_list.append(1)
                 else:
                     addr_list.append(0)

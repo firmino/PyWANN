@@ -3,6 +3,7 @@ import unittest
 from PyWANN import Retina, Wisard
 from samples import *
 import random
+import numpy as np
 
 
 class TestWisard(unittest.TestCase):
@@ -17,6 +18,29 @@ class TestWisard(unittest.TestCase):
 
         w.add_discriminator("A", A_samples[0:-2])
         w.add_discriminator("T", T_samples[0:-2])
+
+        A_test = w.classifier(A_samples[-1])  # first 9 samples
+        T_test = w.classifier(T_samples[-1])  # first 9 samples
+
+        self.assertTrue(A_test['A'] > A_test['T'])
+        self.assertTrue(T_test['T'] > T_test['A'])
+
+
+    def test_T_versus_A_without_bleaching_training_unique(self):
+
+        num_bits = 2
+        retina_size = 64
+        w = Wisard(retina_size, num_bits)
+
+        w.add_discriminator("A")
+        w.add_discriminator("T")
+
+        for ex in A_samples[0:-2]:
+            w.add_training("A",ex)
+
+        for ex in T_samples[0:-2]:
+            w.add_training("T",ex)
+
 
         A_test = w.classifier(A_samples[-1])  # first 9 samples
         T_test = w.classifier(T_samples[-1])  # first 9 samples
@@ -63,21 +87,20 @@ class TestWisard(unittest.TestCase):
         self.assertTrue((A_test['A'] > A_test['T']) and
                         (T_test['T'] > T_test['A']))
 
-
-    def test_k_fold(self):
+    
+    def test_k_fold_using_bleaching(self):
 
         # wisard parameters
-        num_bits = 1
-        retina_size = 3
-        use_vacuum = False
+        num_bits = 7
+        retina_size = 18
+        use_vacuum = True
         use_bleaching = False,
         confidence_threshold = 0.6
-        randomize_positions = True
 
         # k-fold parameters
-        k = 3
-        annotation =["A","B","A","B","A","A"]
-        base = [[0,0,0],[0,0,1],[0,0,0],[0,0,1],[0,0,0],[0,0,0]]
+        k = 10
+        annotation = Y
+        base = X
         num_samples = len(annotation)
         fold_size = num_samples/k
         clazzs = set(annotation)
@@ -91,6 +114,8 @@ class TestWisard(unittest.TestCase):
         for i in xrange(k):
             folds[i] = aux_vec[i*fold_size: (i+1)*fold_size]
 
+
+        vec_result = []
         # testing data
         for i in folds:
 
@@ -101,18 +126,39 @@ class TestWisard(unittest.TestCase):
                 for item in candidates:
                     positions.append(item)
 
+        
             w = Wisard(retina_size,num_bits,
-                       use_vacuum, use_bleaching)
+                       use_vacuum, use_bleaching, confidence_threshold)
 
             for clazz in clazzs:
                 w.add_discriminator(clazz)
+
 
             for position in positions:
                 class_name = annotation[position]
                 value = base[position]
                 w.add_training(class_name, value)
 
+
             #classifing
-            for position in folds[i]:
-                print "O QUE ERA PRA SER: "+annotation[position]
-                print "O QUE FOI: "+str(w.classifier(base[position]))
+            acertos = 0
+            for position in folds[i]:                 
+                result = w.classifier(base[position])
+                #print "RESULTADO: "+str(result)
+
+
+                if result['0'] > result['1'] and annotation[position] == '0':
+                    acertos += 1
+
+                if result['1'] > result['0'] and annotation[position] == '1':
+                    acertos += 1
+
+
+            vec_result.append(acertos/float(len(folds[i])))
+
+        
+
+        mean = np.mean(vec_result)
+        std = np.std(vec_result) 
+        self.assertTrue(mean > 0.5 and std < 0.20)
+        
