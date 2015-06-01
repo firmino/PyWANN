@@ -156,6 +156,32 @@ class Discriminator:
                 # add value 1 into the positon (defined by addr_list)
                 self.__memories[memory_key].add_value(addr_list, 1)
 
+
+    def training_unique(self, positive_retina):
+
+        # for each mapping position in retina, each position has n bits
+        # correspond an only one memory
+        for memory_key in self.__memories_mapping:
+
+            addr_list = []
+
+            # get the mapping positions (size is equal of number of address
+            # in the memory)
+            position_list = self.__memories_mapping[memory_key]
+
+            # for each position mapped get binary value (1 if position has
+            # value positive and 0 otherwise)
+            for position in position_list:
+                if positive_retina.get_data()> 0:
+                    addr_list.append(1)
+                else:
+                    addr_list.append(0)
+
+            # add value 1 into the positon (defined by addr_list)
+            self.__memories[memory_key].add_value(addr_list, 1)
+
+
+
     def classifier(self, retina):
         result = []
 
@@ -184,7 +210,9 @@ class Discriminator:
 
 class Wisard:
 
-    def __init__(self, num_bits_addr=2,
+    def __init__(self,
+                 retina_size,
+                 num_bits_addr=2,
                  vacuum=False,
                  bleaching=False,
                  confidence_threshold=0.6,
@@ -192,6 +220,7 @@ class Wisard:
                  default_bleaching_b_value=3):
 
         self.__num_bits_addr = num_bits_addr
+        self.__retina_size = retina_size
         self.__confidence_threshold = confidence_threshold
         self.__is_cumulative = False
 
@@ -211,28 +240,38 @@ class Wisard:
             self.__is_cumulative = True
             self.__vacuum = Vacuum()
 
-    def add_discriminator(self, name, training_set):
-
-        # transform training_set(multidimensional matrix) to type Retina
-        retina_training_set = []
-        for element in training_set:
-            retina_training_set.append(Retina(element))
-
-        # getting the first retina to know the retina's size
-        retina_size = len(retina_training_set[0].get_data())
+    def add_discriminator(self, name, training_set=None):
 
         # if there is not a mapping position defined
         if self.__position_list is None:
-            self.__generate_position_list(retina_size)
+            self.__generate_position_list(self.__retina_size)
 
         # creating discriminator
-        self.__discriminators[name] = Discriminator(retina_size,
+        self.__discriminators[name] = Discriminator(self.__retina_size,
                                                     self.__num_bits_addr,
                                                     self.__position_list,
                                                     self.__is_cumulative)
 
-        # training discriminator
-        self.__discriminators[name].training(retina_training_set)
+        # training discriminator if is passed
+        if training_set is not None:
+            # transform training_set(multidimensional matrix) to type Retina
+            retina_training_set = []
+            for element in training_set:
+                retina_training_set.append(Retina(element))
+
+            self.__discriminators[name].training(retina_training_set)
+
+
+
+    # add a example to training in an especific discriminator
+    def add_training(self, disc_name, training_example):
+
+        if disc_name not in self.__discriminators:
+            raise Exception('the discriminator %s does not exist' %(disc_name))
+
+        r = Retina(training_example)
+        self.__discriminators[disc_name].training_unique(r)
+
 
     def classifier(self, example):
         result = {}  # classes and values
