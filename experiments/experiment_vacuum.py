@@ -1,7 +1,7 @@
-from PyWANN import Wisard
+
 import sys
 sys.path.append("..")
-
+from PyWANN import Wisard
 from databases.MNIST.images_10k import *
 import time
 import multiprocessing
