@@ -316,21 +316,23 @@ class Bleaching:
 
     def __init__(self, ini_b):
         self.__initial_b = ini_b
-        self.__error = 0.001
 
     def run(self, memory_result, confidence_threshold):
         b = self.__initial_b
-        original_result = {}  # if it is not possible continue the method
+        previous_result = {}  # if it is not possible continue the method
         result = {}
 
         for class_name in memory_result:
             valid_values = [1 for x in memory_result[class_name] if x >= b]
             result[class_name] = sum(valid_values)
 
-        original_result = result.copy()
+        previous_result = result.copy()
         confidence = Util.calc_confidence(result)
 
         while confidence < confidence_threshold:
+
+            previous_result = result
+            result ={}
             # generating a new result list using bleaching
             for class_name in memory_result:
                 valid_values = [1 for x in memory_result[class_name] if x >= b]
@@ -339,7 +341,7 @@ class Bleaching:
             # recalculating confidence
             confidence = Util.calc_confidence(result)
             if confidence == -1:
-                return original_result
+                return previous_result
 
             b += 1  # next value of b
 
@@ -391,8 +393,8 @@ class Util:
             second_max = max(values)
 
             # calculating confidence value
-            c = float(max_value - second_max) / float(max_value)
-
+            c = 1 - float(second_max)**4 / float(max_value)**4
+            
             return c
 
         except Exception, Error:
