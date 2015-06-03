@@ -140,7 +140,6 @@ class Discriminator:
             for memory_key in self.__memories_mapping:
 
                 addr_list = []
-
                 # get the mapping positions (size is equal of number of address
                 # in the memory)
                 position_list = self.__memories_mapping[memory_key]
@@ -155,7 +154,6 @@ class Discriminator:
 
                 # add value 1 into the positon (defined by addr_list)
                 self.__memories[memory_key].add_value(addr_list, 1)
-
 
     def training_unique(self, positive_retina):
 
@@ -172,15 +170,13 @@ class Discriminator:
             # for each position mapped get binary value (1 if position has
             # value positive and 0 otherwise)
             for position in position_list:
-                if positive_retina.get_data()[position]> 0:
+                if positive_retina.get_data()[position] > 0:
                     addr_list.append(1)
                 else:
                     addr_list.append(0)
 
             # add value 1 into the positon (defined by addr_list)
             self.__memories[memory_key].add_value(addr_list, 1)
-
-
 
     def classifier(self, retina):
         result = []
@@ -240,7 +236,7 @@ class Wisard:
             self.__is_cumulative = True
             self.__vacuum = Vacuum()
 
-    def add_discriminator(self, name, training_set=None):
+    def create_discriminator(self, name):
 
         # if there is not a mapping position defined
         if self.__position_list is None:
@@ -252,26 +248,14 @@ class Wisard:
                                                     self.__position_list,
                                                     self.__is_cumulative)
 
-        # training discriminator if is passed
-        if training_set is not None:
-            # transform training_set(multidimensional matrix) to type Retina
-            retina_training_set = []
-            for element in training_set:
-                retina_training_set.append(Retina(element))
-
-            self.__discriminators[name].training(retina_training_set)
-
-
-
     # add a example to training in an especific discriminator
     def add_training(self, disc_name, training_example):
 
         if disc_name not in self.__discriminators:
-            raise Exception('the discriminator %s does not exist' %(disc_name))
+            raise Exception('the discriminator does not exist')
 
         r = Retina(training_example)
         self.__discriminators[disc_name].training_unique(r)
-
 
     def classifier(self, example):
         result = {}  # classes and values
@@ -332,7 +316,7 @@ class Bleaching:
         while confidence < confidence_threshold:
 
             previous_result = result
-            result ={}
+            result = {}
             # generating a new result list using bleaching
             for class_name in memory_result:
                 valid_values = [1 for x in memory_result[class_name] if x >= b]
@@ -394,7 +378,7 @@ class Util:
 
             # calculating confidence value
             c = 1 - float(second_max)**4 / float(max_value)**4
-            
+
             return c
 
         except Exception, Error:

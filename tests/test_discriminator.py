@@ -17,12 +17,14 @@ class TestDiscriminator(unittest.TestCase):
         self.assertIsNotNone(d)
 
     def test_check_correct_number_of_memories_exact_mapping(self):
+
         # retina lenght is a multiple of number of address' bits
         d = Discriminator(12, 3, self.mapping_positions_9)
         num_mem = len(d.get_memories())
         self.assertEquals(num_mem, 4)
 
     def test_check_correct_number_of_memories_not_mult_num_bits(self):
+
         # retina lenght is not a multiple of number of address' bits
         d = Discriminator(14, 3, self.mapping_positions_14)
         num_mem = len(d.get_memories())

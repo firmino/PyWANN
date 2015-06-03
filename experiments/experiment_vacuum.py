@@ -1,6 +1,6 @@
-
 import sys
 sys.path.append("..")
+
 from PyWANN import Wisard
 from databases.MNIST.images_10k import *
 import time
@@ -18,7 +18,7 @@ def classification(retina_size, num_bits,
                        use_vacuum, use_bleaching, confidence_threshold)
 
             for clazz in clazzs:
-                w.add_discriminator(clazz)
+                w.create_discriminator(clazz)
 
             for position in positions:
                 class_name = annotation[position]
@@ -37,20 +37,14 @@ def classification(retina_size, num_bits,
 
             output.put(acertos/float(len(fold)) )
 
+def experiment(num_bits, use_vacuum, use_bleaching, sample_size, confidence_threshold):
 
-def experiment():
-
-        # wisard parameters
-        num_bits = 4
-        retina_size = (28*28)
-        use_vacuum = False
-        use_bleaching = True,
-        confidence_threshold = 0.6
+        retina_size = 28*28
 
         # k-fold parameters
         k = 10
-        annotation = labels  # from MNIST.images_10k
-        base = images  # from MNIST.images_10k
+        annotation = labels[0:1000]  # from MNIST.images_10k
+        base = images[0:1000]  # from MNIST.images_10k
         num_samples = len(annotation)
         fold_size = num_samples/k
         clazzs = set(annotation)
@@ -70,6 +64,8 @@ def experiment():
         output = multiprocessing.Queue()
         processes = []  # a process per fold
         
+
+        ini_time = time.time()
         for i in folds:
             # training fold
             positions = []
@@ -77,7 +73,6 @@ def experiment():
             for candidates in candidate_list:
                 for item in candidates:
                     positions.append(item)
-
 
             parameters = (retina_size, num_bits, clazzs, folds[i], 
                           use_vacuum, use_bleaching, confidence_threshold, 
@@ -94,27 +89,56 @@ def experiment():
         mean = np.mean(vec_result)
         std = np.std(vec_result) 
         
+        total_time = time.time() - ini_time
+        return vec_result, mean, std, total_time
 
-
-        print "\n"
-        print "-" * 30
-        print "Classification Results"
-
-        if use_bleaching:
-            print "Method: Bleaching" 
-            print "confidence Threshold: " + str(confidence_threshold) 
-        elif use_vacuum:
-            print "Method: Vacuum"
-        else:
-            print "Method: None" 
-
-        print "Num Folds: " + str(k)
-
-        print "Results: " + str(vec_result)
-        print "AVG: " + str(mean)
-        print "STD: " + str(std)
-
-        print "-" * 30    
-
+        
 if __name__ == "__main__":
-    experiment()
+
+    output_file = open("~/Desktop/saida_experimento_vacuum",'wr')
+
+    output_file.write("method;num_bits;num_inputs;avg;std;time\n")
+
+    num_bits = [2, 4, 6, 8, 10, 12, 14, 16]
+    size_samples = [100, 1000, 10000]
+    confidence_threshold = 0.1
+    
+    # wisard
+    method = "wisard"
+    use_vacuum = False
+    use_bleaching = False
+    print("Start: "+ method)
+    for num_bit in num_bits:
+        for size_sample in size_samples:
+            res = experiment(num_bit, use_vacuum, use_bleaching, size_sample, confidence_threshold)
+            line = ("%s;%d;%d;%f;%f;%f\n") % (method,num_bit,size_sample,res[1],res[2],res[3])
+            output_file.write(line)
+            print("\tFINISHED STEP: %d number of bits and %d samples") %(num_bit, size_sample)
+    print "-"*30
+
+    # bleaching
+    method = "wisard + bleaching"
+    use_vacuum = False
+    use_bleaching = True
+    print("Start: "+ method)
+    for num_bit in num_bits:
+        for size_sample in size_samples:
+            res = experiment(num_bit, use_vacuum, use_bleaching, size_sample, confidence_threshold)
+            line = ("%s;%d;%d;%f;%f;%f\n") % (method,num_bit,size_sample,res[1],res[2],res[3])
+            output_file.write(line)
+            print("\tFINISHED STEP: %d number of bits and %d samples") %(num_bit, size_sample)
+    print "-"*30
+
+    # vacuum
+    method = "wisard + vacuum"
+    use_vacuum = True
+    use_bleaching = False
+    print("Start: "+ method)
+    for num_bit in num_bits:
+        for size_sample in size_samples:
+            res = experiment(num_bit, use_vacuum, use_bleaching, size_sample, confidence_threshold)
+            line = ("%s;%d;%d;%f;%f;%f\n") % (method,num_bit,size_sample,res[1],res[2],res[3])
+            output_file.write(line)
+            print("\tFINISHED STEP: %d number of bits and %d samples") %(num_bit, size_sample)
+    print "-"*30
+    output_file.close()
