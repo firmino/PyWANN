@@ -1,3 +1,5 @@
+from setuptools import setup
+
 setup(
     name ='PyWANN',
     version='0.1',
@@ -12,7 +14,7 @@ setup(
     classifiers=["Weightless neural networks", "machine learning"],
 
     license='Apache License',
-    
+
     install_requires=[
         'setuptools',
     ]
