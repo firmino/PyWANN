@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name ='PyWANN',
@@ -7,7 +7,7 @@ setup(
     author='Fabricio Firmino, Fabio Rangel',
     author_email='firminodefaria@gmail.com, kojiro@gmail.com',
     url='http://ppgi.ufrj.br/',
-    packages=['nome_do_pacote'],
+    packages= find_packages(),
 
     long_description=" Python Weightless Artificial Neural Networks lib",
 
