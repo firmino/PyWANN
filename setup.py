@@ -12,9 +12,9 @@ setup(
     classifiers=[
         "Weightless neural networks", "machine learning"
     ],
-    
+
     license='Apache License',
     install_requires=[
         'setuptools',
-    ],
- )
+    ]
+)
