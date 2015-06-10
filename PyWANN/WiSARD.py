@@ -182,7 +182,7 @@ class Discriminator:
         pass
 
 
-class Wisard:
+class WiSARD:
 
     def __init__(self,
                  retina_size,

@@ -1,18 +1,18 @@
 import unittest
 
-from PyWANN.WiSARD  import Retina, Wisard
+from PyWANN.WiSARD  import Retina, WiSARD
 from samples import *
 import random
 import numpy as np
 
 
-class TestWisard(unittest.TestCase):
+class TestWiSARD(unittest.TestCase):
 
     def test_T_versus_A_without_bleaching(self):
 
         num_bits = 2
         retina_size = 64
-        w = Wisard(retina_size, num_bits)
+        w = WiSARD(retina_size, num_bits)
 
         w.create_discriminator("A")
         w.create_discriminator("T")
@@ -35,7 +35,7 @@ class TestWisard(unittest.TestCase):
 
         num_bits = 2
         retina_size = 64
-        w = Wisard(retina_size, num_bits)
+        w = WiSARD(retina_size, num_bits)
 
         w.create_discriminator("A")
         w.create_discriminator("T")
@@ -63,7 +63,7 @@ class TestWisard(unittest.TestCase):
         confidence_threshold = 0.6
         randomize_positions = False
 
-        w = Wisard(retina_size, num_bits,
+        w = WiSARD(retina_size, num_bits,
                    use_vacuum, use_bleaching,
                    confidence_threshold, randomize_positions)
 
@@ -90,7 +90,7 @@ class TestWisard(unittest.TestCase):
         num_bits = 4
         use_vacuum = True
 
-        w = Wisard(retina_size, num_bits, use_vacuum)
+        w = WiSARD(retina_size, num_bits, use_vacuum)
 
         w.create_discriminator("A")
         w.create_discriminator("T")
