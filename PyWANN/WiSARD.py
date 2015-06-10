@@ -132,30 +132,8 @@ class Discriminator:
     def get_mapping(self, index):
         return self.__memories_mapping[index]
 
-    def training(self, list_positive_retina):
-        for retina in list_positive_retina:  # for each element of training
 
-            # for each mapping position in retina, each position has n bits
-            # correspond an only one memory
-            for memory_key in self.__memories_mapping:
-
-                addr_list = []
-                # get the mapping positions (size is equal of number of address
-                # in the memory)
-                position_list = self.__memories_mapping[memory_key]
-
-                # for each position mapped get binary value (1 if position has
-                # value positive and 0 otherwise)
-                for position in position_list:
-                    if retina.get_data()[position] > 0:
-                        addr_list.append(1)
-                    else:
-                        addr_list.append(0)
-
-                # add value 1 into the positon (defined by addr_list)
-                self.__memories[memory_key].add_value(addr_list, 1)
-
-    def training_unique(self, positive_retina):
+    def train(self, positive_retina):
 
         # for each mapping position in retina, each position has n bits
         # correspond an only one memory
@@ -178,7 +156,7 @@ class Discriminator:
             # add value 1 into the positon (defined by addr_list)
             self.__memories[memory_key].add_value(addr_list, 1)
 
-    def classifier(self, retina):
+    def classify(self, retina):
         result = []
 
         # for each mapping position in retina, each position of n bits
@@ -249,15 +227,16 @@ class Wisard:
                                                     self.__is_cumulative)
 
     # add a example to training in an especific discriminator
-    def add_training(self, disc_name, training_example):
+    #def add_training(self, disc_name, training_example):
+    def train(self, disc_name, training_example):
 
         if disc_name not in self.__discriminators:
             raise Exception('the discriminator does not exist')
 
         r = Retina(training_example)
-        self.__discriminators[disc_name].training_unique(r)
+        self.__discriminators[disc_name].train(r)
 
-    def classifier(self, example):
+    def classify(self, example):
         result = {}  # classes and values
         memory_result = {}  # for each class the memories values obtained
 
@@ -268,7 +247,7 @@ class Wisard:
 
             # for each class the memorie values obtained
             memory_result[class_name] = self.__discriminators[class_name] \
-                                            .classifier(r)
+                                            .classify(r)
 
             # for each class, store the value
             result[class_name] = sum(memory_result[class_name])

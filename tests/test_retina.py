@@ -1,6 +1,6 @@
 import unittest
 
-from PyWANN import Retina
+from PyWANN.WiSARD  import Retina
 
 
 class TestRetina(unittest.TestCase):

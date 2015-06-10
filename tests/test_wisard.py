@@ -1,6 +1,6 @@
 import unittest
 
-from PyWANN import Retina, Wisard
+from PyWANN.WiSARD  import Retina, Wisard
 from samples import *
 import random
 import numpy as np
@@ -19,14 +19,14 @@ class TestWisard(unittest.TestCase):
 
         # training discriminators
         for sample in A_samples[0:-2]:
-            w.add_training("A", sample)
+            w.train("A", sample)
 
         for sample in T_samples[0:-2]:
-            w.add_training("T", sample)
+            w.train("T", sample)
 
         # classifying
-        A_test = w.classifier(A_samples[-1])  # first 9 samples
-        T_test = w.classifier(T_samples[-1])  # first 9 samples
+        A_test = w.classify(A_samples[-1])  # first 9 samples
+        T_test = w.classify(T_samples[-1])  # first 9 samples
 
         self.assertTrue(A_test['A'] > A_test['T'])
         self.assertTrue(T_test['T'] > T_test['A'])
@@ -42,14 +42,14 @@ class TestWisard(unittest.TestCase):
 
         # training discriminators
         for ex in A_samples[0:-2]:
-            w.add_training("A", ex)
+            w.train("A", ex)
 
         for ex in T_samples[0:-2]:
-            w.add_training("T", ex)
+            w.train("T", ex)
 
         # classifying
-        A_test = w.classifier(A_samples[-1])  # first 9 samples
-        T_test = w.classifier(T_samples[-1])  # first 9 samples
+        A_test = w.classify(A_samples[-1])  # first 9 samples
+        T_test = w.classify(T_samples[-1])  # first 9 samples
 
         self.assertTrue(A_test['A'] > A_test['T'])
         self.assertTrue(T_test['T'] > T_test['A'])
@@ -72,14 +72,14 @@ class TestWisard(unittest.TestCase):
 
         # training discriminators
         for ex in A_samples[0:-2]:
-            w.add_training("A", ex)
+            w.train("A", ex)
 
         for ex in T_samples[0:-2]:
-            w.add_training("T", ex)
+            w.train("T", ex)
 
         # classifying
-        A_test = w.classifier(A_samples[-1])  # first 9 samples
-        T_test = w.classifier(T_samples[-1])  # first 9 samples
+        A_test = w.classify(A_samples[-1])  # first 9 samples
+        T_test = w.classify(T_samples[-1])  # first 9 samples
 
         self.assertTrue((A_test['A'] > A_test['T']) and
                         (T_test['T'] > T_test['A']))
@@ -97,14 +97,14 @@ class TestWisard(unittest.TestCase):
 
         # training discriminators
         for ex in A_samples[0:-2]:
-            w.add_training("A", ex)
+            w.train("A", ex)
 
         for ex in T_samples[0:-2]:
-            w.add_training("T", ex)
+            w.train("T", ex)
 
         # classifying
-        A_test = w.classifier(A_samples[-1])  # first 9 samples
-        T_test = w.classifier(T_samples[-1])  # first 9 samples
+        A_test = w.classify(A_samples[-1])  # first 9 samples
+        T_test = w.classify(T_samples[-1])  # first 9 samples
 
         self.assertTrue((A_test['A'] > A_test['T']) and
                         (T_test['T'] > T_test['A']))

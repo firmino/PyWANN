@@ -1,7 +1,7 @@
 
 import unittest
 
-from PyWANN import Memory
+from PyWANN.WiSARD  import Memory
 
 
 class TestMemory(unittest.TestCase):
