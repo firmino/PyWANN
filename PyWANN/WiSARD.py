@@ -213,6 +213,7 @@ class WiSARD:
         if vacuum:
             self.__is_cumulative = True
             self.__vacuum = Vacuum()
+            
 
     def create_discriminator(self, name):
 
@@ -310,7 +311,7 @@ class Bleaching:
 
         return result
 
-
+'''
 class Vacuum:
 
     def run(self, list_of_memories):
@@ -334,6 +335,28 @@ class Vacuum:
             for column in xrange(num_columns):
                 if list_of_memories[class_name][column] > avg[column]:
                     sum_mem += 1
+            result[class_name] = sum_mem
+        return result
+'''
+
+class Vacuum:
+
+    def run(self, list_of_memories):
+        result = {}
+        num_columns = len(list_of_memories.values()[0])
+        sum_list = [0]*num_columns
+
+        # sum all memories positions
+        for class_name in list_of_memories:
+            for column in xrange(num_columns):
+                sum_list[column] += list_of_memories[class_name][column]
+
+        # applying the vacuumn in each memory
+        for class_name in list_of_memories:
+            sum_mem = 0
+            for column in xrange(num_columns):
+                if sum_list[column] != 0.0:
+                    sum_mem += (list_of_memories[class_name][column]/sum_list[column] )
             result[class_name] = sum_mem
         return result
 
