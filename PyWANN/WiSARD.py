@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import random as rand
-
+import math
 
 class Retina:
 
@@ -132,7 +132,6 @@ class Discriminator:
     def get_mapping(self, index):
         return self.__memories_mapping[index]
 
-
     def train(self, positive_retina):
 
         # for each mapping position in retina, each position has n bits
@@ -213,7 +212,6 @@ class WiSARD:
         if vacuum:
             self.__is_cumulative = True
             self.__vacuum = Vacuum()
-            
 
     def create_discriminator(self, name):
 
@@ -228,7 +226,7 @@ class WiSARD:
                                                     self.__is_cumulative)
 
     # add a example to training in an especific discriminator
-    #def add_training(self, disc_name, training_example):
+    # def add_training(self, disc_name, training_example):
     def train(self, disc_name, training_example):
 
         if disc_name not in self.__discriminators:
@@ -311,13 +309,20 @@ class Bleaching:
 
         return result
 
-'''
+
 class Vacuum:
 
     def run(self, list_of_memories):
         result = {}
         num_columns = len(list_of_memories.values()[0])
         sum_list = [0]*num_columns
+
+        
+        for class_name in list_of_memories:
+            result[class_name] = sum(list_of_memories[class_name])
+
+        confidence = Util.calc_confidence(result)
+        
 
         # sum all memories positions
         for class_name in list_of_memories:
@@ -333,30 +338,8 @@ class Vacuum:
         for class_name in list_of_memories:
             sum_mem = 0
             for column in xrange(num_columns):
-                if list_of_memories[class_name][column] > avg[column]:
+                if list_of_memories[class_name][column] > avg[column]*(1-confidence):
                     sum_mem += 1
-            result[class_name] = sum_mem
-        return result
-'''
-
-class Vacuum:
-
-    def run(self, list_of_memories):
-        result = {}
-        num_columns = len(list_of_memories.values()[0])
-        sum_list = [0]*num_columns
-
-        # sum all memories positions
-        for class_name in list_of_memories:
-            for column in xrange(num_columns):
-                sum_list[column] += list_of_memories[class_name][column]
-
-        # applying the vacuumn in each memory
-        for class_name in list_of_memories:
-            sum_mem = 0
-            for column in xrange(num_columns):
-                if sum_list[column] != 0.0:
-                    sum_mem += (list_of_memories[class_name][column]/sum_list[column] )
             result[class_name] = sum_mem
         return result
 
