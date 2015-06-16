@@ -3,6 +3,22 @@ Python Weightless Artificial Neural Network
 
 ## Instructions
 
+## Inputs
+
+Python lists or Python Matrixs (list of list)
+
+ex: 
+```python
+ [[0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 0, 1, 0, 0, 0, 1, 0],
+    [1, 0, 0, 0, 0, 0, 0, 1],
+    [1, 1, 0, 1, 1, 1, 1, 1],
+    [1, 0, 0, 0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1, 0, 0, 1],
+    [1, 0, 0, 0, 0, 0, 0, 1]]
+```
+
 ### Basic WiSARD
 1. Define the number of bits for each memory
 2. Define the size of retina
