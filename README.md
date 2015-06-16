@@ -5,7 +5,7 @@ Python Weightless Artificial Neural Network
 
 ## Inputs
 
-Python lists or Python Matrixs (list of list)
+Python lists or Python Matrix (list of list)
 
 ex: 
 ```python
