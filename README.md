@@ -4,12 +4,12 @@ Python Weightless Artificial Neural Network
 ## Instructions
 
 ### Basic WiSARD
-* Define the number of bits for each memories
-* Define the size of retina
-* Create a Wisard
-* Create discriminators
-* Train with examples
-* Classify
+1. Define the number of bits for each memory
+2. Define the size of retina
+3. Create a Wisard
+4. Create discriminators
+5. Train with examples
+6. Classify
 
 ```python
 num_bits = 2
@@ -34,17 +34,3 @@ T_test = w.classify(T_samples[-1])
 
 
 ```
-
-
-
-
-
-
-
-retina_size,
-                 num_bits_addr=2,
-                 vacuum=False,
-                 bleaching=False,
-                 confidence_threshold=0.6,
-                 randomize_positions=True,
-                 default_bleaching_b_value=3):
