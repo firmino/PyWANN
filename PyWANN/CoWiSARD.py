@@ -18,9 +18,6 @@ class Memory:
 
         if addr not in self.__memory:
             return 0
-        
-        if addr == 0:
-            return 0
 
         return self.__memory[addr]
 
@@ -35,50 +32,54 @@ class Discriminator:
                  retina_height, 
                  list_conv_matrix):
 
+        self.__threshold = 0.9
+
         self.__memories = {}
         self.__conv_matrix = list_conv_matrix
 
         self.__retina_width = retina_width
         self.__retina_height = retina_height 
+
         self.__convolutional_matrix_width = len(list_conv_matrix[0])
         self.__convolutional_matrix_height = len(list_conv_matrix[0][0])
+        self.__convolution_matrix_size = self.__convolutional_matrix_width * self.__convolutional_matrix_height
 
-        num_memories = ( (retina_width * retina_height) / (self.__convolutional_matrix_width * self.__convolutional_matrix_height) ) 
-
-
-
-
-        for memo_index in xrange(len(self.__conv_matrix)):
-            self.__memories[memo_index] = []
-
-            for i in range(num_memories):
-                memory = Memory()
-                self.__memories[memo_index].append(memory)
+        for memo_index in range(len(self.__conv_matrix)):
+            self.__memories[memo_index] = Memory()
 
     def add_train(self, retina):        
-                            
-        for conv_index in range(len(self.__conv_matrix)):
-            mem_pos = 0
-            memories  = self.__memories[conv_index]
 
-            for i in range(0, self.__retina_width, self.__convolutional_matrix_width):
-                for j in range(0, self.__retina_height, self.__convolutional_matrix_height):
-                    super_position = self.__calculate_superposition(conv_index, retina, i, j)
-                    memories[mem_pos].add_value(super_position)
-                    
-                    mem_pos += 1
+        for conv_index in range(len(self.__conv_matrix)):
+            mem_addr = 0    
+            matrix_conv = self.__conv_matrix[conv_index]
+
+            for i in range(0, self.__retina_width - self.__convolutional_matrix_width  ):
+                for j in range(0,  self.__retina_height -  self.__convolutional_matrix_height):
+                    overlap = self.__calculate_superposition(conv_index, retina, i, j)
+                    rating = float(overlap) / self.__convolution_matrix_size
+
+                    if rating >= self.__threshold:
+                        mem_addr += 1
+
+            self.__memories[conv_index].add_value(mem_addr)
 
 
     def classify(self, retina):
         result = 0
         
-        for conv_index in range (len(self.__conv_matrix)):
-            cont = 0
-            for i in range(0, self.__retina_width, self.__convolutional_matrix_width):
-                for j in range(0, self.__retina_height, self.__convolutional_matrix_height):
-                    super_position = self.__calculate_superposition(conv_index, retina, i, j)
-                    result += self.__memories[conv_index][cont].get_value(super_position)
-                    cont += 1
+        for conv_index in range(len(self.__conv_matrix)):
+            mem_addr = 0    
+            matrix_conv = self.__conv_matrix[conv_index]
+
+            for i in range(0, self.__retina_width - self.__convolutional_matrix_width  ):
+                for j in range(0,  self.__retina_height -  self.__convolutional_matrix_height):
+                    overlap = self.__calculate_superposition(conv_index, retina, i, j)
+                    rating = float(overlap) / self.__convolution_matrix_size
+
+                    if rating >= self.__threshold:
+                        mem_addr += 1
+
+            result += self.__memories[conv_index].get_value(mem_addr)
 
         return result
 
@@ -92,13 +93,11 @@ class Discriminator:
             raise Exception('Convolutional Matrix is not defined')
 
         matrix = self.__conv_matrix[conv_index]
+
         for i in range(len(matrix)):
             for j in range(len(matrix[0])):
-                if matrix[i][j] == 1 and  retina[pos_x + i ][pos_y + j] == 1:
+                if matrix[i][j] == retina[pos_x + i ][pos_y + j]:
                     result += 1
-
-        #if result < 0:
-        #    result = 0            
 
         return result
 
