@@ -39,6 +39,12 @@ class TestMemory(unittest.TestCase):
         m.add_value(addr, 1)
         self.assertEquals(m.get_value(addr), 1)
 
+    def test_ignore_zero_addr(self):
+        m = Memory(3,False,True)
+        addr = [0,0,0]
+        m.add_value(addr, 1)
+        self.assertEquals(m.get_value(addr), 0)
+
 
 if __name__ == "__main__":
 

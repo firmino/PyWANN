@@ -39,9 +39,10 @@ class Retina:
 
 class Memory:
 
-    def __init__(self, num_bits=2, is_cummulative=False):
+    def __init__(self, num_bits=2, is_cummulative=False, ignore_zero_addr=False):
         self.__data = {}
         self.__is_cummulative = is_cummulative
+        self.__ignore_zero_addr = ignore_zero_addr
 
         # number of address positions 2 bits
         for i in xrange(2**num_bits):
@@ -69,6 +70,8 @@ class Memory:
 
     def get_value(self, addr):
         int_position = self.__list_to_int(addr)
+        if self.__ignore_zero_addr and int_position == 0:
+        	return 0
         return self.__data[int_position]
 
     def __list_to_int(self, addr_list):
@@ -82,7 +85,8 @@ class Discriminator:
                  retina_length,
                  num_bits_addr,
                  position_list,
-                 memories_values_cummulative=False):
+                 memories_values_cummulative=False,
+                 ignore_zero_addr=False):
 
         self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
@@ -95,7 +99,8 @@ class Discriminator:
         # creating list of memories
         for i in xrange(num_mem):
             self.__memories[i] = Memory(self.__num_bits_addr,
-                                        memories_values_cummulative)
+                                        memories_values_cummulative,
+                                        ignore_zero_addr)
 
         # mapping positions for each memory
         for i in xrange(num_mem):
@@ -112,7 +117,8 @@ class Discriminator:
             # adding in the last position of the list (position equal
             # num_mem)
             self.__memories[num_mem] = Memory(self.__num_bits_addr_final,
-                                              memories_values_cummulative)
+                                              memories_values_cummulative,
+                                              ignore_zero_addr)
 
             # getting the last positions to mapping, how they are in the end of
             # the randomized position list, we are using negative
@@ -190,7 +196,8 @@ class WiSARD:
                  bleaching=False,
                  confidence_threshold=0.6,
                  randomize_positions=True,
-                 default_bleaching_b_value=3):
+                 default_bleaching_b_value=3,
+                 ignore_zero_addr=False):
 
         self.__num_bits_addr = num_bits_addr
         self.__retina_size = retina_size
@@ -199,6 +206,7 @@ class WiSARD:
 
         self.__discriminators = {}
         self.__position_list = None
+        self.__ignore_zero_addr = ignore_zero_addr
         self.__randomize_positions = randomize_positions
         self.__confidence_threshold = confidence_threshold
 
@@ -223,7 +231,8 @@ class WiSARD:
         self.__discriminators[name] = Discriminator(self.__retina_size,
                                                     self.__num_bits_addr,
                                                     self.__position_list,
-                                                    self.__is_cumulative)
+                                                    self.__is_cumulative,
+                                                    self.__ignore_zero_addr)
 
     # add a example to training in an especific discriminator
     # def add_training(self, disc_name, training_example):
