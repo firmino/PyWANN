@@ -91,7 +91,7 @@ class Discriminator:
 
 
     def __matching_memories(self, table_result):
-        b = 5
+        b = 1
         count = 0
         for i in range(len(table_result)):
             for j in range(len(table_result[0])):
@@ -107,7 +107,7 @@ class Discriminator:
 
         for x in range(x_begin, x_end - self.__conv_matrix_width+1):  # for each possible position in the quadrant
             for y in range(y_begin, y_end - self.__conv_matrix_height+1):  # for each possible position in the quadrant
-                if self.__percent_overlap(conv_matrix, retina, x, y) > self.__threshold_overlap:
+                if self.__percent_overlap(conv_matrix, retina, x, y) >= self.__threshold_overlap:
                     return True
 
         return False
