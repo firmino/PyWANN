@@ -6,8 +6,8 @@ from samples import *
 
 class TestDiscriminator(unittest.TestCase):
 
-    
-    
+
+    '''
     def test_classify(self):
         
         retina_width = 8
@@ -47,7 +47,7 @@ class TestDiscriminator(unittest.TestCase):
 
         #self.assertTrue((A_test['A'] > A_test['T']) and
         #                (T_test['T'] > T_test['A'])) 
-
+    '''
     
 if __name__ == "__main__":
 
