@@ -58,14 +58,13 @@ class Discriminator:
                 y_end = y_begin + self.__quadrant_height
 
                 addr = []
-                for conv_matrix in self.__conv_matrix_width:
+                for conv_matrix in self.__conv_matrices:
 
                     if self.__has_overlap(conv_matrix, retina, x_begin, x_end, y_begin, y_end):
                         addr.append(1)
                     else:
                         addr.append(0)
 
-                print addr
                 memory_position = self.__list_to_int(addr)
 
                 if self.__memories_values_cummulative:

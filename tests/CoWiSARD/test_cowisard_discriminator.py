@@ -86,16 +86,16 @@ class TestDiscriminator(unittest.TestCase):
     def  test_train(self):
 
         retina =  [[1,1,0,0,0,0],
+                   [1,1,0,0,1,1],
+                   [0,0,0,0,1,1],
+                   [0,0,0,0,0,0],
                    [1,1,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0],
                    [0,0,0,0,0,0]]
 
         retina_width = len(retina)
         retina_height = len(retina[0])  
         conv_1 = [[1,1],[1,1]]
-        conv_2 = [[0,1],[1,0]]
+        conv_2 = [[1,1],[0,0]]
         list_conv = [conv_1, conv_2]
         conv_box = (3, 3)
 
@@ -104,8 +104,15 @@ class TestDiscriminator(unittest.TestCase):
                           list_conv,
                           conv_box)        
 
-        print d._Discriminator__conv_memory
+        d.add_train(retina)
+        
+        matrix_target = [[0, 0, 0, 1], # conv_1 and conv_2 exists [1,1] 3
+                         [0, 0, 1, 0], # conv_1 exist             [1,0] 2
+                         [0, 1, 0, 0], # conv_2 exist             [0,1] 1
+                         [1, 0, 0, 0]] # neither of them exists   [0,0] 0
+        matrix_result = d._Discriminator__conv_memory
 
+        self.assertEquals(matrix_target, matrix_result)
 
 
 
