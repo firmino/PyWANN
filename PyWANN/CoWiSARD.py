@@ -84,7 +84,6 @@ class Discriminator:
         reverse_list = addr_list[-1::-1]
         return sum([(2**i*reverse_list[i]) for i in range(len(reverse_list))])
 
-            
     # lookup into a box for the presence of a conv_matrix, if the box presents the conv_matrix with a high similarity 
     # (percentage_overlap >= self.__threshold_overlap), the function returns True
     def __has_overlap(self, conv_matrix, retina, x_begin, x_end, y_begin, y_end):

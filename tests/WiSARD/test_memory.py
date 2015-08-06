@@ -8,7 +8,7 @@ class TestMemory(unittest.TestCase):
 
     def test_memory_size(self):
         m = Memory(3)
-        self.assertEquals(2**3, len(m.get_memory_data()))
+        self.assertEquals(2**3, m.get_memory_size())
 
     def test_bit_conversion(self):
         m = Memory(2)

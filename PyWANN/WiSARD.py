@@ -41,22 +41,19 @@ class Memory:
 
     def __init__(self, num_bits=2, is_cummulative=False, ignore_zero_addr=False):
         self.__data = {}
+        self.__num_bits = num_bits
         self.__is_cummulative = is_cummulative
         self.__ignore_zero_addr = ignore_zero_addr
 
-        # number of address positions 2 bits
-        for i in xrange(2**num_bits):
-            self.__data[i] = 0
-
-    def get_memory_data(self):
-        return self.__data
+    def get_memory_size(self):
+        return 2**self.__num_bits
 
     def add_value(self, addr, value=1):
 
         if type(addr) != list:
             raise Exception("address' type is not a list")
 
-        if len(addr) > len(self.__data):
+        if len(addr) > self.__num_bits:
             raise Exception('number of the bits of address are bigger \
                              than max size')
 
@@ -64,15 +61,24 @@ class Memory:
         int_position = self.__list_to_int(addr)
 
         if self.__is_cummulative:
-            self.__data[int_position] += value
+            if int_position in self.__data:
+                self.__data[int_position] += value
+            else:
+                self.__data[int_position] = value
         else:
             self.__data[int_position] = value
 
     def get_value(self, addr):
         int_position = self.__list_to_int(addr)
+        
+        # ignore zero is for cases where 0 addr are not important (is a parameter in the WiSARD)
         if self.__ignore_zero_addr and int_position == 0:
         	return 0
-        return self.__data[int_position]
+
+        if int_position not in self.__data:
+            return 0
+        else:
+            return self.__data[int_position]
 
     def __list_to_int(self, addr_list):
         reverse_list = addr_list[-1::-1]
