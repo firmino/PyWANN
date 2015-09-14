@@ -45,7 +45,7 @@ class Memory:
         self.__is_cummulative = is_cummulative
         self.__ignore_zero_addr = ignore_zero_addr
 
-    def get_memory_size(self):
+    def get_memory_size(self):  
         return 2**self.__num_bits
 
     def add_value(self, addr, value=1):

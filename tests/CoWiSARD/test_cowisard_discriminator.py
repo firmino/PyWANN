@@ -1,121 +1,143 @@
 import unittest
 
-from PyWANN.CoWiSARD  import Discriminator
+from PyWANN.CoWiSARD import Discriminator
+from samples import *
 
 
 class TestDiscriminator(unittest.TestCase):
 
 
-
     def test_list_to_int(self):
-        list_0 = [0,0,0,0,0]
+
+        list_0  = [0,0,0,0,0]
         list_32 = [1,1,1,1,1]
         list_17 = [1,0,0,0,1]
 
         retina_width = 0
         retina_height = 0
+
         conv_1 = [[1,1],[1,1]]
         conv_2 = [[0,1],[1,0]]
         list_conv = [conv_1, conv_2]
         conv_box = (len(conv_1), len(conv_1[0]))
 
-        d = Discriminator(retina_width,
-                          retina_height,
-                          list_conv,
-                          (3,3))
+        d = Discriminator(retina_width=retina_width,
+                          retina_height=retina_height,
+                          num_bits_first_layer = 2,
+                          num_memo_to_combine = 2,
+                          list_conv_matrix = list_conv)
 
         self.assertEquals(0, d._Discriminator__list_to_int(list_0))
         self.assertEquals(31, d._Discriminator__list_to_int(list_32))
         self.assertEquals(17, d._Discriminator__list_to_int(list_17))
 
-    def test_percent_overlap(self):
-      
-        retina =  [[1,1,0,0,0,0],
-                   [1,1,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0]]
 
-        retina_width = len(retina)
-        retina_height = len(retina[0])  
+    def test_conv_matrix_vertical(self):
+
+        list_conv_matrix = [  [[ -1,  0,  1],
+                               [ -1,  0,  1],
+                               [ -1,  0,  1]],
+
+                              [[ -1, -1, -1],
+                               [  0,  0,  0],
+                               [  1,  1,  1]],
+
+                              [[  0,  1,  1],
+                               [ -1,  0,  1],
+                               [ -1, -1,  0]],
+
+                               [[ 1,  1,   0],
+                                [ 1,  0,  -1],
+                                [ 0, -1,  -1]] ]
+
+        cross = samples["cross"]
+
+        retina_width  = len(cross)
+        retina_height = len(cross[0])
+
+        d = Discriminator(retina_width=retina_width,
+                          retina_height=retina_height,
+                          num_bits_first_layer = 2,
+                          num_memo_to_combine = 2,
+                          list_conv_matrix = list_conv)
+
+        result_vert = d._Discriminator__conv_img(cross, list_conv_matrix[0])
+        result_hori = d._Discriminator__conv_img(cross, list_conv_matrix[1])
+        result_left_diag = d._Discriminator__conv_img(cross, list_conv_matrix[2])
+        result_right_diag = d._Discriminator__conv_img(cross, list_conv_matrix[3])
+
+
+        is_vertical   = True
+        is_horizontal = True
+        is_left_diag  = True
+        is_right_diag = True
+        for i in range( len(result) ):
+            for j in range( len(result[0]) ):
+                
+                if result_vert[i][j] != expected_cross["vertical"][i][j]:
+                  is_vertical = False
+                  break
+
+                if result_horizontal[i][j] != expected_cross["horizontal"][i][j]:
+                  is_horizontal = False
+                  break
+
+                if result_left_diag[i][j] != expected_cross["left_diagonal"][i][j]:
+                  is_left_diag = False
+                  break
+
+                if result_right_diag[i][j] != expected_cross["right_diagonal"][i][j]:
+                  is_right_diag = False
+                  break
+
+        self.assertTrue(is_vertical)
+        self.assertTrue(is_horizontal)
+        self.assertTrue(is_left_diag)
+        self.assertTrue(is_right_diag)
+
+    
+    def test_retina_width_and_height(self):
+        
         conv_1 = [[1,1],[1,1]]
         conv_2 = [[0,1],[1,0]]
         list_conv = [conv_1, conv_2]
-        conv_box = (len(conv_1), len(conv_1[0]))
 
-        d = Discriminator(retina_width,
-                          retina_height,
-                          list_conv,
-                          (3,3))
+        cross= samples["cross"]
+        retina_width  = len(cross)
+        retina_height = len(cross[0])
 
-        perc_overlap = d._Discriminator__percent_overlap(conv_1, retina, 0, 0 )
-        self.assertEquals (perc_overlap, 1.0)
+        d = Discriminator(retina_width=retina_width,
+                          retina_height=retina_height,
+                          num_bits_first_layer = 2,
+                          num_memo_to_combine = 2,
+                          list_conv_matrix = list_conv)
 
-        perc_overlap = d._Discriminator__percent_overlap(conv_1, retina, 0, 1 )
-        self.assertEquals (perc_overlap, 0.5)
-
-        perc_overlap = d._Discriminator__percent_overlap(conv_1, retina, 0, 2 )
-        self.assertEquals (perc_overlap, 0.0)
-
-    def test_has_overlap(self):
+        retina_width  = len(expected_cross["vertical"])
+        retina_height = len(expected_cross["vertical"][0])
         
-        retina =  [[1,1,0,0,0,0],
-                   [1,1,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0],
-                   [0,0,0,0,0,0]]
-
-        retina_width = len(retina)
-        retina_height = len(retina[0])  
-        conv_1 = [[1,1],[1,1]]
-        conv_2 = [[0,1],[1,0]]
-        list_conv = [conv_1, conv_2]
-        conv_box = (len(conv_1), len(conv_1[0]))
-
-        d = Discriminator(retina_width,
-                          retina_height,
-                          list_conv,
-                          (3,3))        
-
-        self.assertTrue(d._Discriminator__has_overlap(conv_1, retina, 0, 3, 0, 3))
-        self.assertFalse(d._Discriminator__has_overlap(conv_2, retina, 0, 3, 0, 3) )
+        self.assertEquals(d._Discriminator__retina_width_filtered, retina_width)
+        self.assertEquals(d._Discriminator__retina_height_filtered, retina_height)
 
 
-    def  test_train(self):
+    def test_num_memory(self):
+      pass
 
-        retina =  [[1,1,0,0,0,0],
-                   [1,1,0,0,1,1],
-                   [0,0,0,0,1,1],
-                   [0,0,0,0,0,0],
-                   [1,1,0,0,0,0],
-                   [0,0,0,0,0,0]]
+    def test_mapping_each_filtered_image(self):
+      pass
 
-        retina_width = len(retina)
-        retina_height = len(retina[0])  
-        conv_1 = [[1,1],[1,1]]
-        conv_2 = [[1,1],[0,0]]
-        list_conv = [conv_1, conv_2]
-        conv_box = (3, 3)
+    def test_mapping_combined_memories(self):
+      pass
 
-        d = Discriminator(retina_width,
-                          retina_height,
-                          list_conv,
-                          conv_box)        
-
-        d.add_train(retina)
-        
-        matrix_target = [[0, 0, 0, 1], # conv_1 and conv_2 exists [1,1] 3
-                         [0, 0, 1, 0], # conv_1 exist             [1,0] 2
-                         [0, 1, 0, 0], # conv_2 exist             [0,1] 1
-                         [1, 0, 0, 0]] # neither of them exists   [0,0] 0
-        matrix_result = d._Discriminator__conv_memory
-
-        self.assertEquals(matrix_target, matrix_result)
+    def test_number_combined_memories(self):
+      pass
 
 
 
+
+
+
+
+       
 if __name__ == "__main__":
 
     unittest.main()

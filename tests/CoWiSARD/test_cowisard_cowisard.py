@@ -1,6 +1,6 @@
 import unittest
 
-from PyWANN.CoWiSARD  import CoWiSARD
+# from PyWANN.CoWiSARD  import CoWiSARD
 from samples import *
 
 
