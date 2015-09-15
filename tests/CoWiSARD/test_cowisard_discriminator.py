@@ -32,7 +32,7 @@ class TestDiscriminator(unittest.TestCase):
         self.assertEquals(17, d._Discriminator__list_to_int(list_17))
 
 
-    def test_conv_matrix_vertical(self):
+    def test_conv_matrix(self):
 
         list_conv_matrix = [  [[ -1,  0,  1],
                                [ -1,  0,  1],
@@ -59,26 +59,26 @@ class TestDiscriminator(unittest.TestCase):
                           retina_height=retina_height,
                           num_bits_first_layer = 2,
                           num_memo_to_combine = 2,
-                          list_conv_matrix = list_conv)
+                          list_conv_matrix = list_conv_matrix)
 
         result_vert = d._Discriminator__conv_img(cross, list_conv_matrix[0])
         result_hori = d._Discriminator__conv_img(cross, list_conv_matrix[1])
         result_left_diag = d._Discriminator__conv_img(cross, list_conv_matrix[2])
         result_right_diag = d._Discriminator__conv_img(cross, list_conv_matrix[3])
-
+        
 
         is_vertical   = True
         is_horizontal = True
         is_left_diag  = True
         is_right_diag = True
-        for i in range( len(result) ):
-            for j in range( len(result[0]) ):
+        for i in range( len(result_vert) ):
+            for j in range( len(result_vert[0]) ):
                 
                 if result_vert[i][j] != expected_cross["vertical"][i][j]:
                   is_vertical = False
                   break
 
-                if result_horizontal[i][j] != expected_cross["horizontal"][i][j]:
+                if result_hori[i][j] != expected_cross["horizontal"][i][j]:
                   is_horizontal = False
                   break
 
@@ -95,11 +95,12 @@ class TestDiscriminator(unittest.TestCase):
         self.assertTrue(is_left_diag)
         self.assertTrue(is_right_diag)
 
+
     
     def test_retina_width_and_height(self):
         
-        conv_1 = [[1,1],[1,1]]
-        conv_2 = [[0,1],[1,0]]
+        conv_1 = [[1,1,1],[1,1,1],[1,1,1]]
+        conv_2 = [[1,1,1],[1,1,1],[1,1,1]]
         list_conv = [conv_1, conv_2]
 
         cross= samples["cross"]
@@ -112,12 +113,13 @@ class TestDiscriminator(unittest.TestCase):
                           num_memo_to_combine = 2,
                           list_conv_matrix = list_conv)
 
-        retina_width  = len(expected_cross["vertical"])
-        retina_height = len(expected_cross["vertical"][0])
+        retina_filtered_width  = len(expected_cross["vertical"])
+        retina_filtered_height = len(expected_cross["vertical"][0])
         
-        self.assertEquals(d._Discriminator__retina_width_filtered, retina_width)
-        self.assertEquals(d._Discriminator__retina_height_filtered, retina_height)
-
+        self.assertEquals(d._Discriminator__retina_width_filtered, retina_filtered_width)
+        
+        self.assertEquals(d._Discriminator__retina_height_filtered, retina_filtered_height)
+    
 
     def test_num_memory(self):
       pass

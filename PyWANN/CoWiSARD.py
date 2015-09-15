@@ -20,8 +20,9 @@ class Discriminator:
         self.__num_bits_first_layer = num_bits_first_layer
         self.__list_conv_matrix = np.array(list_conv_matrix)
 
-        self.__conv_matrix_width  = self.__list_conv_matrix.shape[0]
-        self.__conv_matrix_height = self.__list_conv_matrix.shape[0]
+
+        self.__conv_matrix_width  = len(self.__list_conv_matrix[0])
+        self.__conv_matrix_height = len(self.__list_conv_matrix[0])  ###### <<<<<< WRONG
 
         # filtered retina will have adicional lines and columns due to convolutional operations
         self.__retina_width_filtered = retina_width + self.__conv_matrix_width - 1
