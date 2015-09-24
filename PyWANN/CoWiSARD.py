@@ -59,13 +59,13 @@ class Discriminator:
     def __init__(self,
                  retina_width,
                  retina_height,
-                 num_bits_first_layer, 
+                 num_bits, 
                  num_memo_to_combine,
                  list_conv_matrix,
                  memories_values_cummulative=True,
                  ignore_zero_addr=False):
 
-        self.__num_bits_first_layer = num_bits_first_layer
+        self.__num_bits = num_bits
         self.__list_conv_matrix = np.array(list_conv_matrix)
         self.__num_conv_matrix = self.__list_conv_matrix.shape[0]
 
@@ -73,16 +73,16 @@ class Discriminator:
         self.__conv_matrix_height = len(self.__list_conv_matrix[0][0])
 
         # filtered retina will have adicional lines and columns due to convolutional operations
-        self.__retina_width_filtered  = retina_width + self.__conv_matrix_width - 1
-        self.__retina_height_filtered = retina_height + self.__conv_matrix_height -1
+        self.__retina_width_filtered  = 28#retina_width + self.__conv_matrix_width - 1
+        self.__retina_height_filtered = 28#retina_height + self.__conv_matrix_height -1
         self.__retina_size = self.__retina_width_filtered * self.__retina_height_filtered
 
 
-        self.__num_mem =  self.__retina_size // self.__num_bits_first_layer
+        self.__num_mem =  self.__retina_size // self.__num_bits
 
         # if retina size is not a multiple of number of bits
         has_rest_memory = False
-        number_of_rest_bits = self.__retina_size % self.__num_bits_first_layer
+        number_of_rest_bits = self.__retina_size % self.__num_bits
         if number_of_rest_bits != 0:
             has_rest_memory = True
 
@@ -90,105 +90,114 @@ class Discriminator:
         self.__conv_memories = []
 
         #---------------------------------------------------------------------------------#
-        for i in xrange( len(self.__list_conv_matrix) ):
-            # generating aleatory mapping for each filtered image
-            mapping = range(0,  self.__retina_size)
-            np.random.shuffle(mapping)
-            self.__conv_mapping.append(mapping)
-            
-            # generating void memories for each filtered image
-            memories = [Memory(num_bits_first_layer, memories_values_cummulative, ignore_zero_addr) 
-                        for x in range(self.__num_mem)]
+        # generating aleatory mapping 
+        mapping = range(0,  self.__retina_size)
+        np.random.shuffle(mapping)
+        self.__conv_mapping = mapping
 
-            # if the retine size is not a multiple of number of addrs bits
-            # create a small memory to get all positions
-            if has_rest_memory:
-                rest_memory = Memory(number_of_rest_bits, memories_values_cummulative, ignore_zero_addr) 
-                memories.append(rest_memory)
+        # for each convoluted retina, get self.__num_bits.
+        # combine the self.__num_bits of each retina to compose the address in a memory
+        total_num_bits_memories = self.__num_bits * len(self.__list_conv_matrix)
 
-            self.__conv_memories.append(memories)
+        # creating memories
+        # generating void memories for each combination
+        self.__conv_memories = [Memory(total_num_bits_memories, memories_values_cummulative, ignore_zero_addr) 
+                                for x in range (0, self.__retina_size, self.__num_bits)]
 
-        #---------------------------------------------------------------------------------#
-        # generating memories to combining each filtered image's memory
-        self.__combined_memories_mapping = [(conv,mem_posi) for conv in range(self.__num_conv_matrix) for mem_posi in range (self.__num_mem)]
-        np.random.shuffle(self.__combined_memories_mapping)
-
-        # for the numb of memories in second layer has the same number of bit addrs.
-        # it is not a feature, just i don't have enough time to work with this
-        if (len(self.__combined_memories_mapping) % num_memo_to_combine) != 0:
-            raise Exception('num_memo_to_combine cannot divide len(self.__combined_memories_mapping)' )
-
-
-        num_memories_combined = len(self.__combined_memories_mapping) / num_memo_to_combine
-
-        self.__combined_memories = [ Memory(num_memories_combined, memories_values_cummulative,
-                                     ignore_zero_addr) for x in  range(num_memo_to_combine) ]
-
+        # create a small memory to get all positions
+        if has_rest_memory:
+            address_lenght = number_of_rest_bits * len(self.__list_conv_matrix)
+            rest_memory = Memory( address_lenght, memories_values_cummulative, ignore_zero_addr) 
+            self.__conv_memories.append(rest_memory)
         #---------------------------------------------------------------------------------#
 
     def add_trainning(self, retina):
 
         # trainning convoluted layer
+        linearized_retinas = []
         for conv_matrix_index  in range(len(self.__list_conv_matrix)):
 
             conv_matrix = self.__list_conv_matrix[conv_matrix_index]
             filtered_retina = np.array(self.__conv_img(retina, conv_matrix))  # applying convolution
             linearized_retina = filtered_retina.reshape(1, self.__retina_size)[0].tolist()
 
-            # getting the positions for each memory
-            # each memory has (self.__num_bits_first_layer) positions
-            memories = self.__conv_memories[conv_matrix_index] # getting the memories related with conv_matrix
-            conv_mapping = self.__conv_mapping[conv_matrix_index]
+            linearized_retinas.append(linearized_retina)
 
+        # for each memory, get the mapped positions, the values in the diferent retinas and store
+        memory_position = 0
+        for posi_index in range(0, self.__retina_size, self.__num_bits):
 
-            # getting the shuffled positions stored in self.__conv_mapping
-            for i in range(0, self.__retina_size, self.__num_bits_first_layer): 
-                positions = conv_mapping[i : i + self.__num_bits_first_layer]
-                
-                # to each related position in the retine, getting if the value (one or zero)
-                binary_addres = []
+            # the number of  positions is related with the num_bits used.
+            # num_bits is related for each conv, so the final addrs results is eq num_bits * num_memory
+            positions =  self.__conv_mapping[posi_index:  posi_index + self.__num_bits] 
+
+            addr = []
+            for lin_retina in linearized_retinas:
+
                 for posi in positions:
-                    binary_addres.append(linearized_retina[posi])
+                    addr.append(lin_retina[posi])
 
-                # the number of memories is equal to (self.__retina_size/self.__num_bits_first_layer)
-                # I'm getting the correspondent memory
-                memory_position = i / self.__num_bits_first_layer
-                memories[memory_position].add_value(binary_addres)
+            self.__conv_memories[memory_position].add_value(addr)
+            memory_position += 1 # go to next memory
 
+        
+        number_of_rest_bits = self.__retina_size % self.__num_bits
+        if number_of_rest_bits != 0:
+            # the rest of the positions
+            positions =  self.__conv_mapping[-1 * number_of_rest_bits : ] 
+            addr = []
+            for lin_retina in linearized_retinas:
+                for position in positions:
+                    addr.append(lin_retina[position])
 
-        # trainning combined memories (second layer)
-        #for comb_memo_index in range(len(self.__combined_memories)):
+            self.__conv_memories[memory_position].add_value(addr)
+        
+
 
     def classify(self, retina, bleaching):
 
         result = 0
-         # trainning convoluted layer
+
+        # trainning convoluted layer
+        linearized_retinas = []
         for conv_matrix_index  in range(len(self.__list_conv_matrix)):
 
             conv_matrix = self.__list_conv_matrix[conv_matrix_index]
             filtered_retina = np.array(self.__conv_img(retina, conv_matrix))  # applying convolution
             linearized_retina = filtered_retina.reshape(1, self.__retina_size)[0].tolist()
 
-            # getting the positions for each memory
-            # each memory has (self.__num_bits_first_layer) positions
-            memories = self.__conv_memories[conv_matrix_index] # getting the memories related with conv_matrix
-            conv_mapping = self.__conv_mapping[conv_matrix_index]
+            linearized_retinas.append(linearized_retina)
 
-            # getting the shuffled positions stored in self.__conv_mapping
-            for i in range(0, self.__retina_size, self.__num_bits_first_layer): 
-                positions = conv_mapping[i : i + self.__num_bits_first_layer]
-                
-                # to each related position in the retine, getting if the value (one or zero)
-                binary_addres = []
-                for posi in positions:
-                    binary_addres.append(linearized_retina[posi])
+        # for each memory, get the mapped positions, the values in the diferent retinas and store
+        memory_position = 0
+        for posi_index in range(0, self.__retina_size, self.__num_bits):
 
-                # the number of memories is equal to (self.__retina_size/self.__num_bits_first_layer)
-                # I'm getting the correspondent memory
-                memory_position = i / self.__num_bits_first_layer
+            # the number of  positions is related with the num_bits used.
+            # num_bits is related for each conv, so the final addrs results is eq num_bits * num_memory
+            positions =  self.__conv_mapping[posi_index:  posi_index + self.__num_bits] 
+            addr = []
+            for lin_retina in linearized_retinas:
+                for position in positions:
+                    addr.append(lin_retina[position])
 
-                if  memories[memory_position].get_value(binary_addres) > bleaching:
-                    result += 1
+            if self.__conv_memories[memory_position].get_value(addr) > bleaching:
+                result += 1
+            memory_position += 1 # go to next memory
+
+
+        
+        # if there is rest of positions
+        number_of_rest_bits = self.__retina_size % self.__num_bits
+        if number_of_rest_bits != 0:
+            # the rest of the positions
+            positions =  self.__conv_mapping[-1 * number_of_rest_bits : ] 
+            addr = []
+            for lin_retina in linearized_retinas:
+                for position in positions:
+                    addr.append(lin_retina[position])
+
+            if self.__conv_memories[memory_position].get_value(addr) > bleaching:
+                result += 1
 
         return result
 
@@ -197,7 +206,7 @@ class Discriminator:
         origin = np.array(img)
         img_filter = np.array(conv)
 
-        result = signal.convolve2d(origin, img_filter, boundary='symm', mode='full')
+        result = signal.convolve2d(origin, img_filter, boundary='symm', mode='same')
         np.place(result, result < 0, 0)
         np.place(result, result > 1, 1)
     
@@ -209,7 +218,7 @@ class CoWiSARD:
     def __init__(self, 
                  retina_width,
                  retina_height,
-                 num_bits_first_layer, 
+                 num_bits, 
                  list_conv_matrix,
                  num_memo_to_combine,
                  confidence_threshold = 0.1,
@@ -219,7 +228,7 @@ class CoWiSARD:
 
         self.__retina_width = retina_width
         self.__retina_height = retina_height
-        self.__num_bits_first_layer = num_bits_first_layer
+        self.__num_bits = num_bits
         self.__list_conv_matrix = list_conv_matrix
 
         self.__confidence_threshold = confidence_threshold
@@ -230,14 +239,13 @@ class CoWiSARD:
 
         self.__ignore_zero_addr = ignore_zero_addr    
         
-
         
     def create_discriminator(self, name):
 
         # creating discriminator
         self.__discriminators[name] =  Discriminator(retina_width=self.__retina_width,
                                                      retina_height=self.__retina_height,
-                                                     num_bits_first_layer = self.__num_bits_first_layer,
+                                                     num_bits = self.__num_bits,
                                                      list_conv_matrix = self.__list_conv_matrix,
                                                      num_memo_to_combine = 2,)
 
