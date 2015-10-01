@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import random as rand
+import itertools
 import math
+
 
 class Retina:
 
@@ -23,8 +25,8 @@ class Retina:
         if isinstance(data[0], list):
             aux = []
             # converting matrix to a list of elements
-            for i in range(len(data)):  # for each line
-                for j in range(len(data[0])):  # for each column
+            for i in xrange(len(data)):  # for each line
+                for j in xrange(len(data[0])):  # for each column
                     value = 1 if data[i][j] > 0 else 0
                     aux.append(value)
             self.__data = aux
@@ -144,8 +146,7 @@ class Discriminator:
     def get_mapping(self, index):
         return self.__memories_mapping[index]
 
-    def train(self, positive_retina):
-
+    def add_training(self, retina):
         # for each mapping position in retina, each position has n bits
         # correspond an only one memory
         for memory_key in self.__memories_mapping:
@@ -159,7 +160,7 @@ class Discriminator:
             # for each position mapped get binary value (1 if position has
             # value positive and 0 otherwise)
             for position in position_list:
-                if positive_retina.get_data()[position] > 0:
+                if retina.get_data()[position] > 0:
                     addr_list.append(1)
                 else:
                     addr_list.append(0)
@@ -190,8 +191,27 @@ class Discriminator:
         return result
 
     def get_drasiw(self):
-        pass
 
+        # generate all combinations of possible addres with self.__num_bits
+        addr_list = list(itertools.product([0, 1], repeat=self.__num_bits))
+
+        # for each memory
+        for memory_key in self.__memories_mapping:
+
+            # get relatated position in retina
+            positions = self.__memories_mapping[memory_key]
+
+            # get the memory
+            memory = self.__memories[memory_key]
+            
+
+            for addr in addr_list:
+
+
+
+            
+
+        
 
 class WiSARD:
 
@@ -242,13 +262,13 @@ class WiSARD:
 
     # add a example to training in an especific discriminator
     # def add_training(self, disc_name, training_example):
-    def train(self, disc_name, training_example):
+    def add_training(self, disc_name, training_example):
 
         if disc_name not in self.__discriminators:
             raise Exception('the discriminator does not exist')
 
         r = Retina(training_example)
-        self.__discriminators[disc_name].train(r)
+        self.__discriminators[disc_name].add_training(r)
 
     def classify(self, example):
         result = {}  # classes and values

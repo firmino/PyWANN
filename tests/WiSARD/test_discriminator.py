@@ -47,8 +47,8 @@ class TestDiscriminator(unittest.TestCase):
         # will generate two memories (one with 5 bits and another with 4 bits
         # of addressing)
         d = Discriminator(9, 5, self.mapping_positions_9)
-        d.train(r1)
-        d.train(r2)
+        d.add_training(r1)
+        d.add_training(r2)
 
         # testing correct mapping
         expected_result = [1, 1, 1,
@@ -121,8 +121,8 @@ class TestDiscriminator(unittest.TestCase):
         d = Discriminator(9, 3, self.mapping_positions_9,
                           memories_values_cummulative=True)
 
-        d.train(r1)
-        d.train(r2)
+        d.add_training(r1)
+        d.add_training(r2)
 
         # as all positions in retinas are selected, it is just necessary check
         # if memories addressed by 1,1,1 have value 2
@@ -150,8 +150,8 @@ class TestDiscriminator(unittest.TestCase):
 
         d = Discriminator(9, 3, self.mapping_positions_9)
         
-        d.train(r1)
-        d.train(r2)
+        d.add_training(r1)
+        d.add_training(r2)
 
         test_positive = [[1, 1, 1],
                          [0, 1, 0],
@@ -175,8 +175,8 @@ class TestDiscriminator(unittest.TestCase):
         r2 = Retina(example_t2)
 
         d = Discriminator(9, 3, self.mapping_positions_9)
-        d.train(r1)
-        d.train(r1)
+        d.add_training(r1)
+        d.add_training(r1)
 
         test_positive = [[0, 1, 0],
                          [1, 1, 1],
@@ -186,6 +186,28 @@ class TestDiscriminator(unittest.TestCase):
 
         list_memories_result = d.classify(t_test)
         self.assertNotEqual(sum(list_memories_result), 3)
+
+
+    def test_drasiw(self):
+
+        example_t1 = [[1, 1, 1],
+                      [0, 1, 0],
+                      [0, 1, 0]]
+
+        example_t2 = [[1, 1, 1],
+                      [0, 1, 0],
+                      [0, 1, 0]]
+
+        r1 = Retina(example_t1)
+        r2 = Retina(example_t2)
+
+        d = Discriminator(9, 3, self.mapping_positions_9)
+        d.add_training(r1)
+        d.add_training(r1)
+
+
+        d.get_drasiw()
+
 
 
 if __name__ == "__main__":
