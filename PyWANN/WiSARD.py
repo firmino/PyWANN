@@ -205,8 +205,8 @@ class Discriminator:
             memory = self.__memories[memory_key]
             
 
-            for addr in addr_list:
-
+            for addr in addr_list: #still not implemented
+                pass
 
 
             

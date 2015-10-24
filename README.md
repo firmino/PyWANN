@@ -39,10 +39,10 @@ w.create_discriminator("T")
 
 # training discriminators
 for ex in A_samples:
-  w.train("A", ex)
+  w.add_training("A", ex)
 
 for ex in T_samples:
-  w.train("T", ex)
+  w.add_training("T", ex)
 
 # classifying
 A_test = w.classify(A_samples[-1])  
@@ -81,10 +81,10 @@ w.create_discriminator("T")
 
 # training discriminators
 for ex in A_samples:
-  w.train("A", ex)
+  w.add_training("A", ex)
 
 for ex in T_samples:
-  w.train("T", ex)
+  w.add_training("T", ex)
 
 # classifying
 A_test = w.classify(A_samples[-1])  
@@ -118,10 +118,10 @@ w.create_discriminator("T")
 
 # training discriminators
 for ex in A_samples:
-  w.train("A", ex)
+  w.add_training("A", ex)
 
 for ex in T_samples:
-  w.train("T", ex)
+  w.add_training("T", ex)
 
 # classifying
 A_test = w.classify(A_samples[-1])  
