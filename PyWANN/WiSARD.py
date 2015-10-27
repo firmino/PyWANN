@@ -3,7 +3,6 @@ import random as rand
 import itertools
 import math
 
-
 class Retina:
 
     def __init__(self, data):
@@ -75,7 +74,7 @@ class Memory:
         
         # ignore zero is for cases where 0 addr are not important (is a parameter in the WiSARD)
         if self.__ignore_zero_addr and int_position == 0:
-        	return 0
+            return 0
 
         if int_position not in self.__data:
             return 0
@@ -83,8 +82,13 @@ class Memory:
             return self.__data[int_position]
 
     def __list_to_int(self, addr_list):
-        reverse_list = addr_list[-1::-1]
-        return sum([(2**i*reverse_list[i]) for i in range(len(reverse_list))])
+                
+        #return sum([(2**i*addr_list[i]) for i in xrange(self.__num_bits, 0)])
+
+        position = 0
+        for i in xrange(self.__num_bits, 0):
+            position += 2**i*addr_list[i]
+        return position
 
 
 class Discriminator:
@@ -127,7 +131,6 @@ class Discriminator:
             self.__memories[num_mem] = Memory(self.__num_bits_addr_final,
                                               memories_values_cummulative,
                                               ignore_zero_addr)
-
             # getting the last positions to mapping, how they are in the end of
             # the randomized position list, we are using negative
             # index of python
@@ -149,44 +152,59 @@ class Discriminator:
     def add_training(self, retina):
         # for each mapping position in retina, each position has n bits
         # correspond an only one memory
+        data = retina.get_data()
+        
         for memory_key in self.__memories_mapping:
 
-            addr_list = []
-
+            position_list = self.__memories_mapping[memory_key]
+            len_addr = len(position_list)
+            addr_list = [0]*len_addr
             # get the mapping positions (size is equal of number of address
             # in the memory)
-            position_list = self.__memories_mapping[memory_key]
-
+            #print len(position_list), len(addr_list), self.__num_bits_addr, len(data)
             # for each position mapped get binary value (1 if position has
             # value positive and 0 otherwise)
-            for position in position_list:
-                if retina.get_data()[position] > 0:
-                    addr_list.append(1)
-                else:
-                    addr_list.append(0)
+            
+            for i in xrange(len_addr):
+                position = position_list[i]
+                if data[position] > 0:
+                    addr_list[i] = 1
 
             # add value 1 into the positon (defined by addr_list)
             self.__memories[memory_key].add_value(addr_list, 1)
 
     def classify(self, retina):
-        result = []
-
+        len_memory = len(self.__memories_mapping)
+        result = [0]*len_memory
         # for each mapping position in retina, each position of n bits
         # correspond an only one memory
+        data = retina.get_data()
         for memory_key in self.__memories_mapping:
-            addr_list = []
+            position_list = self.__memories_mapping[memory_key]
+            len_addr = len(position_list)
+            addr_list = [0]*len_addr
+            # get the mapping positions (size is equal of number of address
+            # in the memory)
+            #print len(position_list), len(addr_list), self.__num_bits_addr, len(data)
+            # for each position mapped get binary value (1 if position has
+            # value positive and 0 otherwise)
+            for i in xrange(len_addr):
+                position = position_list[i]
+                if data[position] > 0:
+                    addr_list[i] = 1
+            result.append(self.__memories[memory_key].get_value(addr_list))
+            #addr_list = []
 
             # get the mapping positions (size is equal of number of address
             # in the memory)
-            position_list = self.__memories_mapping[memory_key]
-
-            for position in position_list:
-                if retina.get_data()[position] > 0:
-                    addr_list.append(1)
-                else:
-                    addr_list.append(0)
-
-            result.append(self.__memories[memory_key].get_value(addr_list))
+            #position_list = self.__memories_mapping[memory_key]
+            #data = retina.get_data()
+            #for position in position_list:
+            #    if data[position] > 0:
+            #        addr_list.append(1)
+            #    else:
+            #        addr_list.append(0)
+            #result.append(self.__memories[memory_key].get_value(addr_list))
 
         return result
 
@@ -397,9 +415,22 @@ class Util:
             second_max = max(values)
 
             # calculating confidence value
-            c = 1 - float(second_max)**4 / float(max_value)**4
-
+            c = 1 - float(second_max) / float(max_value)
             return c
 
         except Exception, Error:
             return -1
+
+class Teste:
+
+    def __init__(self, X, y, Xun, testing_X, testing_y):
+    
+        
+        for elem in tup[1]:
+            w1.create_discriminator(elem)
+
+        for i in xrange(len(X)):
+            w1.add_training(y[i], X[i])
+
+        for i in xrange(len(testing_X)):
+            w1.classify(testing_X[i])
