@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import random as rand
+import itertools
 import math
+
 
 class Retina:
 
@@ -23,8 +25,8 @@ class Retina:
         if isinstance(data[0], list):
             aux = []
             # converting matrix to a list of elements
-            for i in range(len(data)):  # for each line
-                for j in range(len(data[0])):  # for each column
+            for i in xrange(len(data)):  # for each line
+                for j in xrange(len(data[0])):  # for each column
                     value = 1 if data[i][j] > 0 else 0
                     aux.append(value)
             self.__data = aux
@@ -39,23 +41,21 @@ class Retina:
 
 class Memory:
 
-    def __init__(self, num_bits=2, is_cummulative=False):
+    def __init__(self, num_bits=2, is_cummulative=False, ignore_zero_addr=False):
         self.__data = {}
+        self.__num_bits = num_bits
         self.__is_cummulative = is_cummulative
+        self.__ignore_zero_addr = ignore_zero_addr
 
-        # number of address positions 2 bits
-        for i in xrange(2**num_bits):
-            self.__data[i] = 0
-
-    def get_memory_data(self):
-        return self.__data
+    def get_memory_size(self):  
+        return 2**self.__num_bits
 
     def add_value(self, addr, value=1):
 
         if type(addr) != list:
             raise Exception("address' type is not a list")
 
-        if len(addr) > len(self.__data):
+        if len(addr) > self.__num_bits:
             raise Exception('number of the bits of address are bigger \
                              than max size')
 
@@ -63,13 +63,24 @@ class Memory:
         int_position = self.__list_to_int(addr)
 
         if self.__is_cummulative:
-            self.__data[int_position] += value
+            if int_position in self.__data:
+                self.__data[int_position] += value
+            else:
+                self.__data[int_position] = value
         else:
             self.__data[int_position] = value
 
     def get_value(self, addr):
         int_position = self.__list_to_int(addr)
-        return self.__data[int_position]
+        
+        # ignore zero is for cases where 0 addr are not important (is a parameter in the WiSARD)
+        if self.__ignore_zero_addr and int_position == 0:
+        	return 0
+
+        if int_position not in self.__data:
+            return 0
+        else:
+            return self.__data[int_position]
 
     def __list_to_int(self, addr_list):
         reverse_list = addr_list[-1::-1]
@@ -82,7 +93,8 @@ class Discriminator:
                  retina_length,
                  num_bits_addr,
                  position_list,
-                 memories_values_cummulative=False):
+                 memories_values_cummulative=False,
+                 ignore_zero_addr=False):
 
         self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
@@ -95,7 +107,8 @@ class Discriminator:
         # creating list of memories
         for i in xrange(num_mem):
             self.__memories[i] = Memory(self.__num_bits_addr,
-                                        memories_values_cummulative)
+                                        memories_values_cummulative,
+                                        ignore_zero_addr)
 
         # mapping positions for each memory
         for i in xrange(num_mem):
@@ -112,7 +125,8 @@ class Discriminator:
             # adding in the last position of the list (position equal
             # num_mem)
             self.__memories[num_mem] = Memory(self.__num_bits_addr_final,
-                                              memories_values_cummulative)
+                                              memories_values_cummulative,
+                                              ignore_zero_addr)
 
             # getting the last positions to mapping, how they are in the end of
             # the randomized position list, we are using negative
@@ -132,8 +146,7 @@ class Discriminator:
     def get_mapping(self, index):
         return self.__memories_mapping[index]
 
-    def train(self, positive_retina):
-
+    def add_training(self, retina):
         # for each mapping position in retina, each position has n bits
         # correspond an only one memory
         for memory_key in self.__memories_mapping:
@@ -147,7 +160,7 @@ class Discriminator:
             # for each position mapped get binary value (1 if position has
             # value positive and 0 otherwise)
             for position in position_list:
-                if positive_retina.get_data()[position] > 0:
+                if retina.get_data()[position] > 0:
                     addr_list.append(1)
                 else:
                     addr_list.append(0)
@@ -178,8 +191,27 @@ class Discriminator:
         return result
 
     def get_drasiw(self):
-        pass
 
+        # generate all combinations of possible addres with self.__num_bits
+        addr_list = list(itertools.product([0, 1], repeat=self.__num_bits))
+
+        # for each memory
+        for memory_key in self.__memories_mapping:
+
+            # get relatated position in retina
+            positions = self.__memories_mapping[memory_key]
+
+            # get the memory
+            memory = self.__memories[memory_key]
+            
+
+            for addr in addr_list: #still not implemented
+                pass
+
+
+            
+
+        
 
 class WiSARD:
 
@@ -190,7 +222,8 @@ class WiSARD:
                  bleaching=False,
                  confidence_threshold=0.6,
                  randomize_positions=True,
-                 default_bleaching_b_value=3):
+                 default_bleaching_b_value=3,
+                 ignore_zero_addr=False):
 
         self.__num_bits_addr = num_bits_addr
         self.__retina_size = retina_size
@@ -199,6 +232,7 @@ class WiSARD:
 
         self.__discriminators = {}
         self.__position_list = None
+        self.__ignore_zero_addr = ignore_zero_addr
         self.__randomize_positions = randomize_positions
         self.__confidence_threshold = confidence_threshold
 
@@ -223,17 +257,18 @@ class WiSARD:
         self.__discriminators[name] = Discriminator(self.__retina_size,
                                                     self.__num_bits_addr,
                                                     self.__position_list,
-                                                    self.__is_cumulative)
+                                                    self.__is_cumulative,
+                                                    self.__ignore_zero_addr)
 
     # add a example to training in an especific discriminator
     # def add_training(self, disc_name, training_example):
-    def train(self, disc_name, training_example):
+    def add_training(self, disc_name, training_example):
 
         if disc_name not in self.__discriminators:
             raise Exception('the discriminator does not exist')
 
         r = Retina(training_example)
-        self.__discriminators[disc_name].train(r)
+        self.__discriminators[disc_name].add_training(r)
 
     def classify(self, example):
         result = {}  # classes and values

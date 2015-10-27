@@ -19,10 +19,10 @@ class TestWiSARD(unittest.TestCase):
 
         # training discriminators
         for sample in A_samples[0:-2]:
-            w.train("A", sample)
+            w.add_training("A", sample)
 
         for sample in T_samples[0:-2]:
-            w.train("T", sample)
+            w.add_training("T", sample)
 
         # classifying
         A_test = w.classify(A_samples[-1])  # first 9 samples
@@ -42,10 +42,10 @@ class TestWiSARD(unittest.TestCase):
 
         # training discriminators
         for ex in A_samples[0:-2]:
-            w.train("A", ex)
+            w.add_training("A", ex)
 
         for ex in T_samples[0:-2]:
-            w.train("T", ex)
+            w.add_training("T", ex)
 
         # classifying
         A_test = w.classify(A_samples[-1])  # first 9 samples
@@ -72,10 +72,10 @@ class TestWiSARD(unittest.TestCase):
 
         # training discriminators
         for ex in A_samples[0:-2]:
-            w.train("A", ex)
+            w.add_training("A", ex)
 
         for ex in T_samples[0:-2]:
-            w.train("T", ex)
+            w.add_training("T", ex)
 
         # classifying
         A_test = w.classify(A_samples[-1])  # first 9 samples
@@ -97,10 +97,10 @@ class TestWiSARD(unittest.TestCase):
 
         # training discriminators
         for ex in A_samples[0:-2]:
-            w.train("A", ex)
+            w.add_training("A", ex)
 
         for ex in T_samples[0:-2]:
-            w.train("T", ex)
+            w.add_training("T", ex)
 
         # classifying
         A_test = w.classify(A_samples[-1])  # first 9 samples

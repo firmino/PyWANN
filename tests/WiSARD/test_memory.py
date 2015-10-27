@@ -8,7 +8,7 @@ class TestMemory(unittest.TestCase):
 
     def test_memory_size(self):
         m = Memory(3)
-        self.assertEquals(2**3, len(m.get_memory_data()))
+        self.assertEquals(2**3, m.get_memory_size())
 
     def test_bit_conversion(self):
         m = Memory(2)
@@ -38,6 +38,12 @@ class TestMemory(unittest.TestCase):
         addr = [1, 1, 1]
         m.add_value(addr, 1)
         self.assertEquals(m.get_value(addr), 1)
+
+    def test_ignore_zero_addr(self):
+        m = Memory(3,False,True)
+        addr = [0,0,0]
+        m.add_value(addr, 1)
+        self.assertEquals(m.get_value(addr), 0)
 
 
 if __name__ == "__main__":
