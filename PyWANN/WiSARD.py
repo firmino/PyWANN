@@ -208,11 +208,6 @@ class Discriminator:
             for addr in addr_list: #still not implemented
                 pass
 
-
-            
-
-        
-
 class WiSARD:
 
     def __init__(self,
