@@ -1,215 +1,271 @@
 import unittest
-from PyWANN.WiSARD import Discriminator, Retina
+
+from PyWANN.WiSARD import Discriminator, Memory
+
+import numpy as np
+from samples import *
 
 
 class TestDiscriminator(unittest.TestCase):
 
-    def setUp(self):
-
-        # creating a default mapping for all discriminators tests
-        self.mapping_positions_9 = range(9)
-        self.mapping_positions_14 = range(14)
-
     def test_create_discriminator(self):
 
-        d = Discriminator(9, 3, self.mapping_positions_9)
+        num_bits_addr = 3
+        retina_length = 10
+
+        positions = np.arange(retina_length)
+
+        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                              for i in xrange(0, retina_length, num_bits_addr) }
+
+        memories = { i/num_bits_addr:  Memory( len(mapping_positions[i/num_bits_addr] )) \
+                     for i in xrange(0,retina_length, num_bits_addr) }  
+
+
+        d = Discriminator(retina_length, mapping_positions, memories)
+
         self.assertIsNotNone(d)
 
     def test_check_correct_number_of_memories_exact_mapping(self):
 
-        # retina lenght is a multiple of number of address' bits
-        d = Discriminator(12, 3, self.mapping_positions_9)
-        num_mem = len(d.get_memories())
-        self.assertEquals(num_mem, 4)
+        num_bits_addr = 4
+        retina_length = 16
+
+        positions = np.arange(retina_length)
+
+        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                              for i in xrange(0, retina_length, num_bits_addr) }
+
+        memories = { i/num_bits_addr:  Memory( len(mapping_positions[i/num_bits_addr] )) \
+                     for i in xrange(0,retina_length, num_bits_addr) }  
+
+
+        d = Discriminator(retina_length, mapping_positions, memories)
+
+        self.assertEquals(len(d.get_memories()), 4)
+
 
     def test_check_correct_number_of_memories_not_mult_num_bits(self):
 
-        # retina lenght is not a multiple of number of address' bits
-        d = Discriminator(14, 3, self.mapping_positions_14)
-        num_mem = len(d.get_memories())
-        self.assertEquals(num_mem, 5)  # a addicional memory
+        num_bits_addr = 4
+        retina_length = 15
+
+        positions = np.arange(retina_length)
+
+        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                              for i in xrange(0, retina_length, num_bits_addr) }
+
+        memories = { i/num_bits_addr:  Memory( len(mapping_positions[i/num_bits_addr] )) \
+                     for i in xrange(0,retina_length, num_bits_addr) }  
+
+
+        d = Discriminator(retina_length, mapping_positions, memories)
+
+        #  last memory will have 3 bits instead 4
+        self.assertEquals(len(d.get_memories()), 4)
+
 
     def test_training_no_cumulative(self):
 
         # example of T classes in a grig of 3x3
-        data1 = [[1, 1, 1],
-                 [0, 1, 0],
-                 [0, 3, 0]]
+        data1 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 1, 0]
 
-        data2 = [[4, 4, 4],
-                 [0, 2, 0],
-                 [0, 0, 0]]
+        data2 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 0, 0]
 
-        # creating retinas with data examples
-        r1 = Retina(data1)
-        r2 = Retina(data2)
+        num_bits_addr = 3
+        retina_length = 9
+        is_cummulative = False
 
-        # will generate two memories (one with 5 bits and another with 4 bits
-        # of addressing)
-        d = Discriminator(9, 5, self.mapping_positions_9)
-        d.add_training(r1)
-        d.add_training(r2)
+        positions = np.arange(retina_length)
 
-        # testing correct mapping
-        expected_result = [1, 1, 1,
-                           0, 1, 0,
-                           0, 1, 0]
+        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                              for i in xrange(0, retina_length, num_bits_addr) }
 
-        # For example, in this case we have three memories so, if the
-        # address' for the first memory (mem-1) is [3, 7, 8],
-        # second memory (mem-2) is [4, 2, 5] and for the third (mem-3)
-        # is [0, 1, 6] we will have the follow configuration for examples data1
-        # and data2
-        #
-        # | MEMORY |  MAPPING | DATA1-Mapped | DATA2-Mapped
-        # | mem-1  |  [3,7,8] | [0 1 0]      | [0 0 0]
-        # | mem-2  |  [4,2,5] | [0 1 0]      | [1 1 0]
-        # | mem-3  |  [0,1,6] | [1 1 0]      | [1 1 0]
-        #
-        # If we apply the mapping process for the expected result (that
-        # represents the same class) we have to find 1 in all memories
-        # positions
 
-        is_corrected_mapped = True
+        memories = { i/num_bits_addr:  Memory( len(mapping_positions[i/num_bits_addr]), is_cummulative) \
+                     for i in xrange(0,retina_length, num_bits_addr) }  
 
-        for key in d.get_memories_mapping():
 
-            if(len(d.get_memories_mapping()[key]) == 4):
-                posi_0 = d.get_memories_mapping()[key][0]  # get 1th position
-                posi_1 = d.get_memories_mapping()[key][1]  # get 2th position
-                posi_2 = d.get_memories_mapping()[key][2]  # get 3th position
-                posi_3 = d.get_memories_mapping()[key][3]  # get 4th position
+        d = Discriminator(retina_length, mapping_positions, memories)
 
-                addr = [expected_result[posi_0], expected_result[posi_1],
-                        expected_result[posi_2], expected_result[posi_3]]
-                if d.get_memory(key).get_value(addr) != 1:
-                    is_corrected_mapped = False
-                    break
+        d.add_training(data1)
+        d.add_training(data2)
 
-            if(len(d.get_memories_mapping()[key]) == 5):
-                posi_0 = d.get_memories_mapping()[key][0]  # get 1th position
-                posi_1 = d.get_memories_mapping()[key][1]  # get 2th position
-                posi_2 = d.get_memories_mapping()[key][2]  # get 3th position
-                posi_3 = d.get_memories_mapping()[key][3]  # get 4th position
-                posi_4 = d.get_memories_mapping()[key][4]  # get 5th position
+        #  first three elements of the retina
+        mem_0 = d.get_memory(0)
 
-                addr = [expected_result[posi_0], expected_result[posi_1],
-                        expected_result[posi_2], expected_result[posi_3],
-                        expected_result[posi_4]]
+        self.assertEquals (mem_0.get_value(0), 0)
+        self.assertEquals (mem_0.get_value(1), 0)
+        self.assertEquals (mem_0.get_value(2), 0)
+        self.assertEquals (mem_0.get_value(3), 0)
+        self.assertEquals (mem_0.get_value(4), 0)
+        self.assertEquals (mem_0.get_value(5), 0)
+        self.assertEquals (mem_0.get_value(6), 0)
+        self.assertEquals (mem_0.get_value(7), 1)
 
-                if d.get_memory(key).get_value(addr) != 1:
-                    is_corrected_mapped = False
-                    break
+        mem_1 = d.get_memory(1)
+        self.assertEquals (mem_1.get_value(0), 0)
+        self.assertEquals (mem_1.get_value(1), 0)
+        self.assertEquals (mem_1.get_value(2), 1)
+        self.assertEquals (mem_1.get_value(3), 0)
+        self.assertEquals (mem_1.get_value(4), 0)
+        self.assertEquals (mem_1.get_value(5), 0)
+        self.assertEquals (mem_1.get_value(6), 0)
+        self.assertEquals (mem_1.get_value(7), 0)        
+    
+        mem_2 = d.get_memory(2)
+        self.assertEquals (mem_2.get_value(0), 1)
+        self.assertEquals (mem_2.get_value(1), 0)
+        self.assertEquals (mem_2.get_value(2), 1)
+        self.assertEquals (mem_2.get_value(3), 0)
+        self.assertEquals (mem_2.get_value(4), 0)
+        self.assertEquals (mem_2.get_value(5), 0)
+        self.assertEquals (mem_2.get_value(6), 0)
+        self.assertEquals (mem_2.get_value(7), 0)
 
-        self.assertTrue(is_corrected_mapped)
-
-    def test_training_cumulative(self):
+    def test_training_no_cumulative(self):
 
         # example of T classes in a grig of 3x3
-        data1 = [[1, 1, 1],
-                 [1, 1, 1],
-                 [1, 1, 1]]
+        data1 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 1, 0]
 
-        data2 = [[1, 1, 1],
-                 [1, 1, 1],
-                 [1, 1, 1]]
+        data2 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 0, 0]
 
-        # creating retinas with data examples
-        r1 = Retina(data1)
-        r2 = Retina(data2)
+        num_bits_addr = 3
+        retina_length = 9
+        is_cummulative = True
 
-        d = Discriminator(9, 3, self.mapping_positions_9,
-                          memories_values_cummulative=True)
+        positions = np.arange(retina_length)
 
-        d.add_training(r1)
-        d.add_training(r2)
+        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                              for i in xrange(0, retina_length, num_bits_addr) }
 
-        # as all positions in retinas are selected, it is just necessary check
-        # if memories addressed by 1,1,1 have value 2
 
-        is_corrected_mapped = True
-        for memory in d.get_memories().values():
+        memories = { i/num_bits_addr:  Memory( len(mapping_positions[i/num_bits_addr]), is_cummulative) \
+                     for i in xrange(0,retina_length, num_bits_addr) }  
 
-            if memory.get_value([1, 1, 1]) < 2:
-                is_corrected_mapped = False
-                break
 
-        self.assertTrue(is_corrected_mapped)
+        d = Discriminator(retina_length, mapping_positions, memories)
+
+        d.add_training(data1)
+        d.add_training(data2)
+
+        #  first three elements of the retina
+        mem_0 = d.get_memory(0)
+
+        self.assertEquals (mem_0.get_value(0), 0)
+        self.assertEquals (mem_0.get_value(1), 0)
+        self.assertEquals (mem_0.get_value(2), 0)
+        self.assertEquals (mem_0.get_value(3), 0)
+        self.assertEquals (mem_0.get_value(4), 0)
+        self.assertEquals (mem_0.get_value(5), 0)
+        self.assertEquals (mem_0.get_value(6), 0)
+        self.assertEquals (mem_0.get_value(7), 2)
+
+        mem_1 = d.get_memory(1)
+        self.assertEquals (mem_1.get_value(0), 0)
+        self.assertEquals (mem_1.get_value(1), 0)
+        self.assertEquals (mem_1.get_value(2), 2)
+        self.assertEquals (mem_1.get_value(3), 0)
+        self.assertEquals (mem_1.get_value(4), 0)
+        self.assertEquals (mem_1.get_value(5), 0)
+        self.assertEquals (mem_1.get_value(6), 0)
+        self.assertEquals (mem_1.get_value(7), 0)        
+    
+        mem_2 = d.get_memory(2)
+        self.assertEquals (mem_2.get_value(0), 1)
+        self.assertEquals (mem_2.get_value(1), 0)
+        self.assertEquals (mem_2.get_value(2), 1)
+        self.assertEquals (mem_2.get_value(3), 0)
+        self.assertEquals (mem_2.get_value(4), 0)
+        self.assertEquals (mem_2.get_value(5), 0)
+        self.assertEquals (mem_2.get_value(6), 0)
+        self.assertEquals (mem_2.get_value(7), 0)
+
 
     def test_classifier_positive(self):
-        example_t1 = [[1, 1, 1],
-                      [0, 1, 0],
-                      [0, 1, 0]]
-
-        example_t2 = [[1, 1, 1],
-                      [0, 1, 0],
-                      [0, 1, 0]]
-
-        r1 = Retina(example_t1)
-        r2 = Retina(example_t2)
-
-        d = Discriminator(9, 3, self.mapping_positions_9)
         
-        d.add_training(r1)
-        d.add_training(r2)
+        # example of T classes in a grig of 3x3
+        data1 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 1, 0]
 
-        test_positive = [[1, 1, 1],
-                         [0, 1, 0],
-                         [0, 1, 0]]
+        data2 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 0, 0]
 
-        t_test = Retina(test_positive)
+        test_positive = [1, 1, 1,
+                         0, 1, 0,
+                         0, 1, 0]
 
-        list_memories_result = d.classify(t_test)
-        self.assertEqual(sum(list_memories_result), 3)
+        num_bits_addr = 3
+        retina_length = 9
 
-    def test_classifier_negative(self):
-        example_t1 = [[1, 1, 1],
-                      [0, 1, 0],
-                      [0, 1, 0]]
+        positions = np.arange(retina_length)
 
-        example_t2 = [[1, 1, 1],
-                      [0, 1, 0],
-                      [0, 1, 0]]
+        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                              for i in xrange(0, retina_length, num_bits_addr) }
 
-        r1 = Retina(example_t1)
-        r2 = Retina(example_t2)
 
-        d = Discriminator(9, 3, self.mapping_positions_9)
-        d.add_training(r1)
-        d.add_training(r1)
+        memories = { i/num_bits_addr:  Memory( len(mapping_positions[i/num_bits_addr])) \
+                     for i in xrange(0,retina_length, num_bits_addr) }  
 
-        test_positive = [[0, 1, 0],
-                         [1, 1, 1],
-                         [0, 1, 0]]
 
-        t_test = Retina(test_positive)
+        d = Discriminator(retina_length, mapping_positions, memories)
 
-        list_memories_result = d.classify(t_test)
-        self.assertNotEqual(sum(list_memories_result), 3)
+        d.add_training(data1)
+        d.add_training(data2)
 
+        result = d.classify(test_positive)
+
+        self.assertTrue(np.array_equal(result, [2,2,1]))
 
     def test_drasiw(self):
 
-        example_t1 = [[1, 1, 1],
-                      [0, 1, 0],
-                      [0, 1, 0]]
+        # example of T classes in a grig of 3x3
+        data1 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 1, 0]
 
-        example_t2 = [[1, 1, 1],
-                      [0, 1, 0],
-                      [0, 1, 0]]
+        data2 = [1, 1, 1,
+                 0, 1, 0,
+                 0, 0, 0]
 
-        r1 = Retina(example_t1)
-        r2 = Retina(example_t2)
+        test_positive = [1, 1, 1,
+                         0, 1, 0,
+                         0, 1, 0]
 
-        d = Discriminator(9, 3, self.mapping_positions_9)
-        d.add_training(r1)
-        d.add_training(r1)
+        num_bits_addr = 3
+        retina_length = 9
+
+        positions = np.arange(retina_length)
+
+        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                              for i in xrange(0, retina_length, num_bits_addr) }
 
 
-        d.get_drasiw()
+        memories = { i/num_bits_addr:  Memory( len(mapping_positions[i/num_bits_addr])) \
+                     for i in xrange(0,retina_length, num_bits_addr) }  
 
+
+        d = Discriminator(retina_length, mapping_positions, memories)
+
+        d.add_training(data1)
+        d.add_training(data2)
+
+        DRASiW =  d.get_DRASiW()
+
+        self.assertTrue(np.array_equal(DRASiW, [2,2,2,
+                                                0,2,0,
+                                                0,1,0]))
 
 
 if __name__ == "__main__":
-
-    unittest.main()
+     unittest.main()
