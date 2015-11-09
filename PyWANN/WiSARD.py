@@ -3,6 +3,7 @@
 import numpy as np
 import itertools
 import math
+import copy
 
 
 class Memory:
@@ -138,168 +139,91 @@ class Discriminator:
 
         return DRASiW
 
-
-
 class WiSARD:
 
     def __init__(self,
-                 retina_size,
-                 num_bits_addr=2,
+                 retina_length,
+                 num_bits_addr,
                  bleaching=True,
                  confidence_threshold=0.1,
+                 ignore_zero_addr=False, 
+                 defaul_b_bleaching=1,
                  randomize_positions=True,
-                 default_bleaching_b_value=3,
-                 ignore_zero_addr=False):
+                 memory_is_cumulative=True):
 
-        self.__num_bits_addr = num_bits_addr
-        self.__retina_size = retina_size
-        self.__confidence_threshold = confidence_threshold
-        self.__is_cumulative = False
-
+        self.__retina_length = retina_length
+        self.__bleaching = bleaching
+        self.__defaul_b_bleaching = defaul_b_bleaching
         self.__discriminators = {}
-        self.__mapping_positions = None
-        self.__ignore_zero_addr = ignore_zero_addr
-        self.__randomize_positions = randomize_positions
         self.__confidence_threshold = confidence_threshold
+        
+        positions = np.arange(retina_length)
+        if randomize_positions:
+            np.random.shuffle(positions)
 
-        self.__bleaching = None
-        if bleaching:
-            self.__is_cumulative = True
-            self.__bleaching = Bleaching(default_bleaching_b_value)
+        #  spliting positions for each memory
+        self.__mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+                                     for i in xrange(0, retina_length, num_bits_addr) }
 
-
-
-
-        # ###############################PASSAR COMO PARÂMETRO PARA O DISCRIMINADOR  ############################
-        # # mapping positions for each memory
-        # # the mapping will be like {0:[0,2,3], 1:[3,8,7], 2: [1,4,5]}
-        # self.__mapping_positions = { i/self.__num_bits_addr : a[i:i+self.__num_bits_addr] \
-        #                              for i in xrange(0,self.__retina_length, self.__num_bits_addr)}
-
-        # # creating list of memories
-        # self.__memories = { i/self.__num_bits_addr:  Memory( len(self.__mapping_positions[i/self.__num_bits_addr] ), 
-        #                                                      memories_are_cumulative,
-        #                                                      ignore_zero_addr)  \
-        #                     for i in xrange(0,self.__retina_length, self.__num_bits_addr)}  }
+        #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
+        self.__memories_template = { i/num_bits_addr:  Memory( num_bits_addr = len(self.__mapping_positions[i/num_bits_addr] ), 
+                                                               is_cummulative = memory_is_cumulative,
+                                                               ignore_zero_addr = ignore_zero_addr)  \
+                                   for i in xrange(0,retina_length, num_bits_addr)}
 
 
 
     def create_discriminator(self, name):
+        #  have to copy() memories or all discriminator will have the same set of memories
+        new_memories = copy.deepcopy(self.__memories_template)
+        self.__discriminators[name] = Discriminator(retina_length = self.__retina_length,
+                                                    mapping_positions = self.__mapping_positions,
+                                                    memories = new_memories) 
+        
 
-        # if there is not a mapping position defined
-        if self.__mapping_positions is None:
-            self.__generate_mapping_positions(self.__retina_size)
 
-        # creating discriminator
-        self.__discriminators[name] = Discriminator(self.__retina_size,
-                                                    self.__num_bits_addr,
-                                                    self.__mapping_positions,
-                                                    self.__is_cumulative,
-                                                    self.__ignore_zero_addr)
+    #  X is a matrix of retinas (each line will be a retina)
+    #  y is a list of label (each line defina a retina in the same position in Y)
+    def fit(self, X, y):
+        num_samples =  len(y)
+        for i in xrange(num_samples):
+            retina = X[i]
+            label = y[i]
+            self.__discriminators[label].add_training (retina)
+        
+    def predict(self, x):
+        
+        discriminator_names = [class_name for class_name in self.__discriminators]
 
-    # add a example to training in an especific discriminator
-    # def add_training(self, disc_name, training_example):
-    def add_training(self, disc_name, training_example):
+        result_value = np.array( [ self.__discriminators[class_name].classify(x) \
+                                    for class_name in discriminator_names] )
 
-        if disc_name not in self.__discriminators:
-            raise Exception('the discriminator does not exist')
+        result_sum = np.sum(result_value[:]>=1, axis=1) 
+        
+        if self.__bleaching:
+            b = self.__defaul_b_bleaching
+            confidence = self.__calc_confidence(result_sum)
 
-        r = Retina(training_example)
-        self.__discriminators[disc_name].add_training(r)
+            while confidence < self.__confidence_threshold:
+                result_sum = np.sum(result_value[:]>=1, axis=1)
+                confidence = self.__calc_confidence(result_sum)
+                b += 1
 
-    def classify(self, example):
-        result = {}  # classes and values
-        memory_result = {}  # for each class the memories values obtained
-
-        # transform example into a retina
-        r = Retina(example)
-
-        for class_name in self.__discriminators:
-
-            # for each class the memorie values obtained
-            memory_result[class_name] = self.__discriminators[class_name] \
-                                            .classify(r)
-
-            # for each class, store the value
-            result[class_name] = sum(memory_result[class_name])
-
-        # applying bleaching method if it is selected
-        if self.__bleaching is not None:
-            result = self.__bleaching.run(memory_result, self.__confidence_threshold)
+        result = { discriminator_names[i] : result_sum[i] for i in xrange(len(result_sum) )}
 
         return result
+        
+    def __calc_confidence(self,results):
+            
+        # getting max value
+        max_value = results.max()
 
-    def __generate_mapping_positions(self, retina_length):
+        # getting second max value
+        second_max = results[results < max_value].max()
 
-        # generating all possible positions
-        mapping_positions = range(retina_length)
+        # calculating confidence value
+        c = 1 - float(second_max) / float(max_value)
 
-        # mapping random positions (if randomize_positions is True)
-        if self.__randomize_positions:  # random positions to mapping aleatory
-            rand.shuffle(mapping_positions)
+        return c
 
-        self.__mapping_positions = mapping_positions
-
-
-class Bleaching:
-
-    def __init__(self, ini_b):
-        self.__initial_b = ini_b
-
-    def run(self, memory_result, confidence_threshold):
-        b = self.__initial_b
-        previous_result = {}  # if it is not possible continue the method
-        result = {}
-
-        for class_name in memory_result:
-            valid_values = [1 for x in memory_result[class_name] if x >= b]
-            result[class_name] = sum(valid_values)
-
-        previous_result = result.copy()
-        confidence = Util.calc_confidence(result)
-
-        while confidence < confidence_threshold:
-
-            previous_result = result
-            result = {}
-            # generating a new result list using bleaching
-            for class_name in memory_result:
-                valid_values = [1 for x in memory_result[class_name] if x >= b]
-                result[class_name] = sum(valid_values)
-
-            # recalculating confidence
-            confidence = Util.calc_confidence(result)
-            if confidence == -1:
-                return previous_result
-
-            b += 1  # next value of b
-
-        return result
-
-
-
-
-class Util:
-
-    @staticmethod
-    def calc_confidence(list_of_results):
-
-        try:
-            values = list_of_results.values()
-
-            # getting max value
-            max_value = max(values)
-
-            # removing max from the list
-            values.remove(max_value)
-
-            # getting second max value
-            second_max = max(values)
-
-            # calculating confidence value
-            c = 1 - float(second_max) / float(max_value)
-
-            return c
-
-        except Exception, Error:
-            return -1
+        
