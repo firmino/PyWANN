@@ -3,6 +3,10 @@ Python Weightless Artificial Neural Network
 
 ## Instructions
 
+## How to Install
+
+pip install git+git://github.com/firmino/PyWANN.git
+
 ## Inputs
 
 Python lists or Numpy array
