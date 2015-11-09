@@ -20,14 +20,14 @@ ex:
 ```
 
 ### WiSARD Parameters
-1. retina_length => (INT)the length of the retina
-2. num_bits_addr => (INT) number of bits used to build the memories
-3. bleaching  => (BOOLEAN) if bleaching thechnique is active or not, default value is True
-4. confidence_threshold => (FLOAT) confidence used by bleaching technique to solve tie problems, default is 0.1
-5. ignore_zero_addr  => (BOOLEAN) the classification of sparse feature vectors can be improved excluding positions zeros. Default value is False
-6. defaul_b_bleaching  => (INT) the initial value for bleaching technique. Default value is 1
-7. randomize_positions =>  (BOOLEAN) if the pseudo-random-mapping will be used or not. Default value is True.
-8. memory_is_cumulative => (BOOLEAN) if false memories store 0 or 1, if true memories count the number of occurrences of patterns. Default value is True
+1. retina_length: (INT) The length of the retina
+2. num_bits_addr: (INT) Number of bits used to build the memories
+3. bleaching : (BOOLEAN) If bleaching thechnique is active or not, default value is True
+4. confidence_threshold: (FLOAT) Confidence used by bleaching technique to solve tie problems, default is 0.1
+5. ignore_zero_addr : (BOOLEAN) The classification of sparse feature vectors can be improved excluding positions zeros. Default value is False
+6. defaul_b_bleaching : (INT) The initial value for bleaching technique. Default value is 1
+7. randomize_positions:  (BOOLEAN) If the pseudo-random-mapping will be used or not. Default value is True.
+8. memory_is_cumulative: (BOOLEAN) If false memories store 0 or 1, if true memories count the number of occurrences of patterns. Default value is True
 
 
 ### Basic WiSARD (Without Bleaching)
