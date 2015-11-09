@@ -5,130 +5,92 @@ Python Weightless Artificial Neural Network
 
 ## Inputs
 
-Python lists or Python Matrix (list of list)
+Python lists or Numpy array
 
 ex: 
 ```python
- [[0, 1, 0, 0, 0, 0, 0, 0],
-  [0, 0, 1, 1, 1, 1, 0, 0],
-  [0, 0, 1, 0, 0, 0, 1, 0],
-  [1, 0, 0, 0, 0, 0, 0, 1],
-  [1, 1, 0, 1, 1, 1, 1, 1],
-  [1, 0, 0, 0, 0, 0, 0, 0],
-  [0, 0, 0, 0, 1, 0, 0, 1],
-  [1, 0, 0, 0, 0, 0, 0, 1]]
+ [0, 1, 0, 0, 0, 0, 0, 0,
+  0, 0, 1, 1, 1, 1, 0, 0,
+  0, 0, 1, 0, 0, 0, 1, 0,
+  1, 0, 0, 0, 0, 0, 0, 1,
+  1, 1, 0, 1, 1, 1, 1, 1,
+  1, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 1, 0, 0, 1,
+  1, 0, 0, 0, 0, 0, 0, 1]
 ```
 
-### Basic WiSARD
+### WiSARD Parameters
+1. retina_length => (INT)the length of the retina
+2. num_bits_addr => (INT) number of bits used to build the memories
+3. bleaching  => (BOOLEAN) if bleaching thechnique is active or not, default value is True
+4. confidence_threshold => (FLOAT) confidence used by bleaching technique to solve tie problems, default is 0.1
+5. ignore_zero_addr  => (BOOLEAN) the classification of sparse feature vectors can be improved excluding positions zeros. Default value is False
+6. defaul_b_bleaching  => (INT) the initial value for bleaching technique. Default value is 1
+7. randomize_positions =>  (BOOLEAN) if the pseudo-random-mapping will be used or not. Default value is True.
+8. memory_is_cumulative => (BOOLEAN) if false memories store 0 or 1, if true memories count the number of occurrences of patterns. Default value is True
+
+
+### Basic WiSARD (Without Bleaching)
 1. Define the number of bits for each memory
-2. Define the size of retina
-3. Create a Wisard
-4. Create discriminators
-5. Train with examples
-6. Classify
+2. Define the retina's length
+3. Set Bleaching to FALSE 
+4. Create a Wisard
+5. Create discriminators
+6. Fit with examples (trainning)
+7. Predict (classify)
 
 ```python
-num_bits = 2
-retina_size = 64
 
-w = WiSARD(retina_size, num_bits)
+retina_length = 64
+num_bits_addr = 2
+bleaching = False
+
+w = WiSARD(retina_length, num_bits_addr, bleaching)
 
 w.create_discriminator("A")
 w.create_discriminator("T")
 
-
 # training discriminators
-for ex in A_samples:
-  w.add_training("A", ex)
 
-for ex in T_samples:
-  w.add_training("T", ex)
+w.fit(X_A, y_A )
+w.fit(X_T, y_T )
 
-# classifying
-A_test = w.classify(A_samples[-1])  
-T_test = w.classify(T_samples[-1])  
+
+result = w.predict(X_test)  #  Result will be a dictionary using the classes as key and the WiSARD result as values
+
+
 
 
 ```
 
 ### Bleaching WiSARD
 1. Define the number of bits for each memory
-2. Define the size of retina
-3. Set Vacuum to False
-3. Set Bleaching to True
-4. Define Confidence Value
-5. Set if positions are randomized (default is True)
-6. define a default value of b to Bleaching (default b=3)
-3. Create a Wisard
-4. Create discriminators
-5. Train with examples
-6. Classify
+2. Define the retina's length
+3. Set Bleaching to FALSE 
+4. Create a Wisard
+5. Create discriminators
+6. Fit with examples (trainning)
+7. Predict (classify)
 
 ```python
-num_bits = 2
-retina_size = 64
-use_vacuum = False
-use_bleaching = True
-confidence_threshold = 0.1
-rand_positions = True
-default_b = 3
 
-w = WiSARD(retina_size, num_bits, use_vacuum, use_bleaching, confidence_threshold, rand_positions, default_b)
+retina_length = 64
+num_bits_addr = 2
+
+w = WiSARD(retina_length, num_bits_addr, bleaching)
 
 w.create_discriminator("A")
 w.create_discriminator("T")
 
-
 # training discriminators
-for ex in A_samples:
-  w.add_training("A", ex)
 
-for ex in T_samples:
-  w.add_training("T", ex)
-
-# classifying
-A_test = w.classify(A_samples[-1])  
-T_test = w.classify(T_samples[-1])  
+w.fit(X_A, y_A )
+w.fit(X_T, y_T )
 
 
-```
+result = w.predict(X_test)  #  Result will be a dictionary using the classes as key and the WiSARD result as values
 
 
-
-### Vacuum WiSARD
-1. Define the number of bits for each memory
-2. Define the size of retina
-3. Set Vacuum to True
-3. Set Bleaching to False
-3. Create a Wisard
-4. Create discriminators
-5. Train with examples
-6. Classify
-
-```python
-num_bits = 2
-retina_size = 64
-use_vacuum = True
-
-w = WiSARD(retina_size, num_bits, use_vacuum)
-
-w.create_discriminator("A")
-w.create_discriminator("T")
-
-
-# training discriminators
-for ex in A_samples:
-  w.add_training("A", ex)
-
-for ex in T_samples:
-  w.add_training("T", ex)
-
-# classifying
-A_test = w.classify(A_samples[-1])  
-T_test = w.classify(T_samples[-1])  
-
-
-```
 
 
 

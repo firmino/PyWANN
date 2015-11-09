@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import itertools
-import math
 import copy
 
 
