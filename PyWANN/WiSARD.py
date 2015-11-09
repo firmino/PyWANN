@@ -217,8 +217,10 @@ class WiSARD:
         max_value = results.max()
 
         # getting second max value
-        second_max = results[results < max_value].max()
-
+        second_max = max_value
+        if results[results < max_value].size > 0:
+            second_max = results[results < max_value].max()
+        
         # calculating confidence value
         c = 1 - float(second_max) / float(max_value)
 
