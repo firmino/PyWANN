@@ -7,44 +7,93 @@ import numpy as np
 
 class Node:
     
-    def __init__(self, name, parent):
+    def __init__(self, name):
         self.__name   = name
+        self.__parent = None
+    
+        self.__best_child = None
+        self.__best_value = 0
+        self.__second_best_value = 0
+
+    def get_name(self):
+        return self.__name
+
+    def set_value(self, value):
+        self.__best_value = value
+
+    def get_value(self):
+        return self.__best_value
+
+    def set_parent(self, parent):
         self.__parent = parent
-        self.__children = []
-        self.__value = 0
 
     def get_parent(self):
         return self.__parent
 
-    def add_child(self, child_node):
-        self.__children.append(child_node)
+    def propagate_value(self, node):
+        value = node.get_value()
+        if value > self.__best_value:
+            self.__second_best_value = self.__best_value
+            self.__best_value = value
+            self.__best_child = node
+        
+        elif value == self.__best_value or value > self.__second_best_value:
+            self.__second_best_value  = value    
 
-    def get_children(self):
-        return self.__children
+    def get_best_child(self):
+        return self.__best_child
 
-    def set_value(self, value):
-        self.__value = value
+    def get_confidence(self):        
+        if self.__best_value == 0:
+            return 0
+        return 1.0 - float(self.__second_best_value)/float(self.__best_value)
 
-    def get_value(self):
-        return self.__value
+    def reset(self):
+        self.__best_child = None
+        self.__best_value = 0
+        self.__second_best_value = 0
 
-    def reset_value(self):
-        self.__value = 0
 
 class Tree:
-    
-    def __init__(self, tolerance_dif=0.05):
 
-        self.__tolerance_dif = tolerance_dif
-        self.__root = Node(name = "root", parent=None)
+    def __init__(self, config_path, confidence_threshold=0.2):
+
+        self.__confidence_threshold = confidence_threshold
         self.__node_leaf_index = {}  # leafs have clusters of WiSARDS, so is necessary be indexed to receive classification values 
+        self.__leaf_index = {}  # leafs have clusters of WiSARDS, so is necessary be indexed to receive classification values 
 
-    def add_child(self, parent, child_name, is_leaf=False):
+        self.__root = Node(name = "root")
 
-        node = Node(name=child_name, parent= parent)
-        parent.add_child(node)
-        if is_leaf:
-            self.__node_leaf_index[child_name] = node
+        #  creating the tree structure
+        config_file = open(config_path)
+        config = yaml.load(config_file)
+        node = config['config']
+        self.__generate_tree(None, node)  
+
+
+    def __generate_tree(self, parent_node, node_conf):
+        
+        name = node_conf['name']
+        
+        if name != 'root':  # if is not the root node, create a new node
+            new_node = Node(name=name)
+            new_node.set_parent(parent_node)
+
+        else:  # if is the root node
+            new_node = self.__root
+        
+        # if is a leaf
+        if 'children' not in node_conf: 
+            self.__node_leaf_index[name] = new_node
+            return 
+        
+        for child in node_conf['children']:
+            child_node = self.__generate_tree(new_node, child)
+
+
+    def get_leafs(self):
+        return self.__node_leaf_index
+
 
     def predict(self, results):
 
@@ -59,13 +108,16 @@ class Tree:
             # propagated values to parents
             self.__up_value(node.get_parent(), value)
 
-        #  choosing the bast node to represent the class
+        # choosing the bast node to represent the class
+        # classifica
+        # limpa
 
     def __up_value(self, node, value):
-        
+
         if node.get_value() < value:
             node.set_value(value)
             self.__up_data(node.get_parent(), value)
+
 
     def __down_classifying(self, node):
 
@@ -158,69 +210,68 @@ class GenWiSARD:
         self.__coverage_threshold = 0.6
 
 
-        ################################################CREATING TEMPLATE OF DISCRIMINATORS###################################
-        #  generationg mapping positions
-        positions = np.arange(retina_length)
-        if randomize_positions:
-            np.random.shuffle(positions)  # random positions 
+        # ################################################CREATING TEMPLATE OF DISCRIMINATORS###################################
+        # #  generationg mapping positions
+        # positions = np.arange(retina_length)
+        # if randomize_positions:
+        #     np.random.shuffle(positions)  # random positions 
          
-         #  spliting positions for each memory
-        mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
-                                     for i in xrange(0, retina_length, num_bits_addr) }
+        #  #  spliting positions for each memory
+        # mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
+        #                              for i in xrange(0, retina_length, num_bits_addr) }
 
-        #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
-        memories_template = { i/num_bits_addr:  Memory( num_bits_addr = len(mapping_positions[i/num_bits_addr] ), 
-                                                        is_cummulative = False,
-                                                        ignore_zero_addr = False)  \
-                              for i in xrange(0,retina_length, num_bits_addr)}
+        # #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
+        # memories_template = { i/num_bits_addr:  Memory( num_bits_addr = len(mapping_positions[i/num_bits_addr] ), 
+        #                                                 is_cummulative = False,
+        #                                                 ignore_zero_addr = False)  \
+        #                       for i in xrange(0,retina_length, num_bits_addr)}
 
 
-        self.__discriminator_template = Discriminator(retina_length = retina_length,
-                                                      mapping_positions = mapping_positions,
-                                                      memories = memories_template) 
+        # self.__discriminator_template = Discriminator(retina_length = retina_length,
+        #                                               mapping_positions = mapping_positions,
+        #                                               memories = memories_template) 
+        # ######################################################################################################################
+
+
+
+        # #################################################GENERATING THE TREEE ################################################
+
+        # config_file = open(treeConfigPath)
+        # config = yaml.load(config_file)
+        # node = config['config']
+        # tree = self.__generate_tree(node)
+
         ######################################################################################################################
 
 
+    # def __generate_tree(self, node_conf):
 
-        #################################################GENERATING THE TREEE ################################################
+    #     label = node_conf['name']
+    #     is_leaf = True
+    #     if 'children' in node_conf: 
+    #         is_leaf = False
 
-        config_file = open(treeConfigPath)
-        config = yaml.load(config_file)
-        node = config['config']
-        tree = self.__generate_tree(node)
-
-        ######################################################################################################################
-
-
-    def __generate_tree(self, node_conf):
-
-        label = node_conf['name']
-        is_leaf = True
-        if 'children' in node_conf: 
-            is_leaf = False
-
-        node = Node(label=label,
-                    is_leaf=is_leaf,
-                    discriminator_template=self.__discriminator_template,
-                    b_value=self.__b_value,
-                    coverage_threshold=self.__coverage_threshold)
+    #     node = Node(label=label,
+    #                 is_leaf=is_leaf,
+    #                 discriminator_template=self.__discriminator_template,
+    #                 coverage_threshold=self.__coverage_threshold)
                 
-        if 'children' not in node_conf:
-            self.__children_list [label] = node
-            return node
+    #     if 'children' not in node_conf:
+    #         self.__children_list [label] = node
+    #         return node
 
-        for child in node_conf['children']:
-            child_node = self.__generate_tree(child)
-            node.add_child(child_node)
-
-
-        return node
+    #     for child in node_conf['children']:
+    #         child_node = self.__generate_tree(child)
+    #         node.add_child(child_node)
 
 
-    def fit(self, X, y):
-        num_samples =  len(y)
-        for i in xrange(num_samples):
-            retina = X[i]
-            label = y[i]
-            self.__children_list[label].add_training(retina)
+    #     return node
+
+
+    # def fit(self, X, y):
+    #     num_samples =  len(y)
+    #     for i in xrange(num_samples):
+    #         retina = X[i]
+    #         label = y[i]
+    #         self.__children_list[label].add_training(retina)
 
