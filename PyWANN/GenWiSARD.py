@@ -5,134 +5,157 @@ import yaml
 import numpy as np
 
 
-class Cluster:
+class Node:
     
-    def __init__(self,discriminator_template, b_value=1, coverage_threshold=0.6):
-
-        self.__discriminator_template = discriminator_template
-        self.__b_value = b_value
-        self.__coverage_threshold = coverage_threshold
-
-        
-
-
-
-
-class Node:
-    pass
-
-class Tree:
-    pass
-
-
-
-
-
-
-
-
-
-
-
-class Node:
-
-    def __init__(self, label, is_leaf, discriminator_template, b_value=1, coverage_threshold=0.6):
-
-        self.__label = label
-        self.__is_leaf = is_leaf
-        self.__parent = None
-        self.__discriminator_template = discriminator_template
-
-        if self.__is_leaf:
-            self.__children = None
-            self.__leaf_cluster = []
-        else:
-            self.__children = []
-            self.__leaf_cluster = None
-
-
-    def set_parent(self, parent):
+    def __init__(self, name, parent):
+        self.__name   = name
         self.__parent = parent
+        self.__children = []
+        self.__value = 0
 
-    def get_parent(self, parent):
+    def get_parent(self):
         return self.__parent
 
-    def get_label(self):
-        return self.__label
-
-    def add_child(self, child):
-        if not self.__is_leaf:
-            self.__children.append(child)
+    def add_child(self, child_node):
+        self.__children.append(child_node)
 
     def get_children(self):
         return self.__children
 
+    def set_value(self, value):
+        self.__value = value
+
+    def get_value(self):
+        return self.__value
+
+    def reset_value(self):
+        self.__value = 0
+
+class Tree:
+    
+    def __init__(self, tolerance_dif=0.05):
+
+        self.__tolerance_dif = tolerance_dif
+        self.__root = Node(name = "root", parent=None)
+        self.__node_leaf_index = {}  # leafs have clusters of WiSARDS, so is necessary be indexed to receive classification values 
+
+    def add_child(self, parent, child_name, is_leaf=False):
+
+        node = Node(name=child_name, parent= parent)
+        parent.add_child(node)
+        if is_leaf:
+            self.__node_leaf_index[child_name] = node
+
+    def predict(self, results):
+
+        #  each leaf will receive the data from clusters (results)
+        #  result is a dictionary, using the node name as key and best acuracy for the classification. 
+        #  ex: result = {"leaf_a":12, "leaf_b":5, "leaf_c":12, "leaf_d":3}
+        for leaf_name in results:
+            node = self.__node_leaf_index[leaf_name]
+            value = results [leaf_name]
+            node.add_value( value )
+
+            # propagated values to parents
+            self.__up_value(node.get_parent(), value)
+
+        #  choosing the bast node to represent the class
+
+    def __up_value(self, node, value):
+        
+        if node.get_value() < value:
+            node.set_value(value)
+            self.__up_data(node.get_parent(), value)
+
+    def __down_classifying(self, node):
+
+        best_child = None
+        best_value = 0
+        node_tied = False
+
+        for child in node.get_children():
+
+            #  if exist two son of a node that have similar values
+            if best_child != None and np.isclose(best_child.get_value(), child.get_value(), rtol=self.__tolerance_dif):
+                return node
+
+            if child.get_value() > best_value:
+                best_value = child.get_value()
+                best_child = child
+
+        #  if the best_child has not children, its a leaf
+        if len(best_child.get_children()) == 0:
+            return best_child
+
+        self.__down_classifying(best_child)  # recursion
+
+
+class Cluster:
+    
+    def __init__(self, discriminator_template, coverage_threshold=0.6):
+
+        self.__discriminator_template = discriminator_template
+        self.__b_value = b_value
+        self.__coverage_threshold = coverage_threshold
+        self.__cluster = []
+
     def add_training(self, retina):
-        if self.__is_leaf:
+        
+        trained = False
 
-            trained = False
-            for d in self.__leaf_cluster:
-                
-                mem_result = d.classify(retina)
-                
-                num_memories_accessed = mem_result[mem_result >= b_value].size
-                num_memories = mem_result.size
+        for d in self.__cluster:
+            
+            mem_result = d.classify(retina)            
+            num_memories_accessed = mem_result.sum()
+            num_memories = mem_result.size
 
-                #  coverage is the percentual of memories that recognize the pattern
-                coverage = num_memories_accessed/float(num_memories)
+            #  coverage is the percentual of memories that recognize the pattern
+            coverage = num_memories_accessed/float(num_memories)
 
-                if coverage >= coverage_threshold:
-                    d.add_training(retina)
-                    trained = True
-
-            if not trained: 
-                d = deepcopy(self.__discriminator_template)
+            if coverage >= coverage_threshold:
                 d.add_training(retina)
-                self.__leaf_cluster.append(d)
+                trained = True
+
+        if not trained: 
+            d = deepcopy(self.__discriminator_template)
+            d.add_training(retina)
+            self.__cluster.append(d)
 
         
     def classify(self, retina):
-        
-        if self.__is_leaf:
 
-            max_coverage = 0.0
-            result = []
+        max_coverage = 0.0
+        result = []
 
-            for d in self.__leaf_cluster:
+        for d in self.__cluster:
 
-                mem_result = d.classify(retina)
+            mem_result = d.classify(retina)
 
-                num_memories_accessed = mem_result[mem_result >= b_value].size
-                num_memories = mem_result.size
+            num_memories_accessed = mem_result.sum()
+            num_memories = mem_result.size
 
-                #  coverage is the percentual of memories that recognize the pattern
-                coverage = num_memories_accessed/float(num_memories)
+            #  coverage is the percentual of memories that recognize the pattern
+            coverage = num_memories_accessed/float(num_memories)
 
-                if coverage > max_coverage:
-                    max_coverage = coverage
-                    result = mem_result
+            if coverage > max_coverage:
+                max_coverage = coverage
+                result = mem_result
 
-            return result
+        return result
 
 
 class GenWiSARD:
 
-
     def __init__(self, 
                  treeConfigPath,
-                 num_bits_addr,
                  retina_length,
-                 b_value=1,
-                 randomize_positions=True,
-                 memory_is_cumulative=False,
-                 ignore_zero_addr=False,
-                 coverage_threshold=0.6):
+                 num_bits_addr,
+                 coverage_threshold=0.6,
+                 randomize_positions=True):
         
         self.__children_list = {}
         self.__tree = {}
-        self.__b_value = b_value
         self.__coverage_threshold = 0.6
-
 
 
         ################################################CREATING TEMPLATE OF DISCRIMINATORS###################################
@@ -147,8 +170,8 @@ class GenWiSARD:
 
         #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
         memories_template = { i/num_bits_addr:  Memory( num_bits_addr = len(mapping_positions[i/num_bits_addr] ), 
-                                                        is_cummulative = memory_is_cumulative,
-                                                        ignore_zero_addr = ignore_zero_addr)  \
+                                                        is_cummulative = False,
+                                                        ignore_zero_addr = False)  \
                               for i in xrange(0,retina_length, num_bits_addr)}
 
 
