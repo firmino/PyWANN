@@ -14,7 +14,7 @@ setup(
     install_requires=['setuptools', 'numpy', 'pyyaml'],
 
     package_dir={'WiSARD':    './PyWANN/WiSARD', \
-                 'GenWiSARD': './PyWANN/GenWiSARD'}
+                 'DeepWiSARD': './PyWANN/DeepWiSARD'}
 
     )
 
