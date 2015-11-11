@@ -15,9 +15,9 @@ class TestTree(unittest.TestCase):
         config_path = "tests/GenWiSARD/config.yaml"
         t = Tree(config_path = config_path, confidence_threshold=0.10)
         
-        self.assertTrue("neto1" in t.get_leafs())
-        self.assertTrue("neto2" in t.get_leafs())
-        self.assertTrue("filho2" in t.get_leafs())
+        self.assertTrue("neto1" in t._Tree__node_leaf_index)
+        self.assertTrue("neto2" in t._Tree__node_leaf_index)
+        self.assertTrue("filho2" in t._Tree__node_leaf_index)
 
     def test_tree_structure(self):
 
@@ -25,7 +25,7 @@ class TestTree(unittest.TestCase):
         t = Tree(config_path = config_path, confidence_threshold=0.10)
 
 
-        neto1 = t.get_leafs()['neto1']
+        neto1 = t._Tree__node_leaf_index['neto1']
         self.assertEqual("neto1", neto1.get_name())
 
         filho1 = neto1.get_parent()
@@ -36,7 +36,7 @@ class TestTree(unittest.TestCase):
 
         ########################################################
 
-        neto2 = t.get_leafs()['neto2']
+        neto2 = t._Tree__node_leaf_index['neto2']
         self.assertEqual("neto1", neto1.get_name())
 
         filho1 = neto2.get_parent()
@@ -47,7 +47,7 @@ class TestTree(unittest.TestCase):
 
         ########################################################
 
-        filho2 = t.get_leafs()['filho2']
+        filho2 = t._Tree__node_leaf_index['filho2']
         self.assertEqual("filho2", filho2.get_name())
         
         root = filho2.get_parent()

@@ -5,143 +5,6 @@ import yaml
 import numpy as np
 
 
-class Node:
-    
-    def __init__(self, name):
-        self.__name   = name
-        self.__parent = None
-    
-        self.__best_child = None
-        self.__best_value = 0
-        self.__second_best_value = 0
-
-    def get_name(self):
-        return self.__name
-
-    def set_value(self, value):
-        self.__best_value = value
-
-    def get_value(self):
-        return self.__best_value
-
-    def set_parent(self, parent):
-        self.__parent = parent
-
-    def get_parent(self):
-        return self.__parent
-
-    def propagate_value(self, node):
-        value = node.get_value()
-        if value > self.__best_value:
-            self.__second_best_value = self.__best_value
-            self.__best_value = value
-            self.__best_child = node
-        
-        elif value == self.__best_value or value > self.__second_best_value:
-            self.__second_best_value  = value    
-
-    def get_best_child(self):
-        return self.__best_child
-
-    def get_confidence(self):        
-        if self.__best_value == 0:
-            return 0
-        return 1.0 - float(self.__second_best_value)/float(self.__best_value)
-
-    def reset(self):
-        self.__best_child = None
-        self.__best_value = 0
-        self.__second_best_value = 0
-
-
-class Tree:
-
-    def __init__(self, config_path, confidence_threshold=0.2):
-
-        self.__confidence_threshold = confidence_threshold
-        self.__node_leaf_index = {}  # leafs have clusters of WiSARDS, so is necessary be indexed to receive classification values 
-        self.__leaf_index = {}  # leafs have clusters of WiSARDS, so is necessary be indexed to receive classification values 
-
-        self.__root = Node(name = "root")
-
-        #  creating the tree structure
-        config_file = open(config_path)
-        config = yaml.load(config_file)
-        node = config['config']
-        self.__generate_tree(None, node)  
-
-
-    def __generate_tree(self, parent_node, node_conf):
-        
-        name = node_conf['name']
-        
-        if name != 'root':  # if is not the root node, create a new node
-            new_node = Node(name=name)
-            new_node.set_parent(parent_node)
-
-        else:  # if is the root node
-            new_node = self.__root
-        
-        # if is a leaf
-        if 'children' not in node_conf: 
-            self.__node_leaf_index[name] = new_node
-            return 
-        
-        for child in node_conf['children']:
-            child_node = self.__generate_tree(new_node, child)
-
-
-    def get_leafs(self):
-        return self.__node_leaf_index
-
-
-    def predict(self, results):
-
-        #  each leaf will receive the data from clusters (results)
-        #  result is a dictionary, using the node name as key and best acuracy for the classification. 
-        #  ex: result = {"leaf_a":12, "leaf_b":5, "leaf_c":12, "leaf_d":3}
-        for leaf_name in results:
-            node = self.__node_leaf_index[leaf_name]
-            value = results [leaf_name]
-            node.add_value( value )
-
-            # propagated values to parents
-            self.__up_value(node.get_parent(), value)
-
-        # choosing the bast node to represent the class
-        # classifica
-        # limpa
-
-    def __up_value(self, node, value):
-
-        if node.get_value() < value:
-            node.set_value(value)
-            self.__up_data(node.get_parent(), value)
-
-
-    def __down_classifying(self, node):
-
-        best_child = None
-        best_value = 0
-        node_tied = False
-
-        for child in node.get_children():
-
-            #  if exist two son of a node that have similar values
-            if best_child != None and np.isclose(best_child.get_value(), child.get_value(), rtol=self.__tolerance_dif):
-                return node
-
-            if child.get_value() > best_value:
-                best_value = child.get_value()
-                best_child = child
-
-        #  if the best_child has not children, its a leaf
-        if len(best_child.get_children()) == 0:
-            return best_child
-
-        self.__down_classifying(best_child)  # recursion
-
-
 class Cluster:
     
     def __init__(self, discriminator_template, coverage_threshold=0.6):
@@ -194,6 +57,146 @@ class Cluster:
                 result = mem_result
 
         return result
+
+
+class Node:
+    
+    def __init__(self, name):
+        self.__name   = name
+        self.__parent = None
+    
+        self.__best_child = None
+        self.__best_value = 0
+        self.__second_best_value = 0
+
+    def get_name(self):
+        return self.__name
+
+    def set_value(self, value):
+        self.__best_value = value
+
+    def get_value(self):
+        return self.__best_value
+
+    def set_parent(self, parent):
+        self.__parent = parent
+
+    def get_parent(self):
+        return self.__parent
+
+    def propagate_value(self, node):        
+        updated = False
+        value = node.get_value()
+        if value > self.__best_value:
+            self.__second_best_value = self.__best_value
+            self.__best_value = value
+            self.__best_child = node
+            updated = True
+        
+        elif value == self.__best_value or value > self.__second_best_value:
+            self.__second_best_value  = value
+
+        return updated
+
+
+    def get_best_child(self):
+        return self.__best_child
+
+    def get_confidence(self):        
+        if self.__best_value == 0:
+            return 0
+        return 1.0 - float(self.__second_best_value)/float(self.__best_value)
+
+    def reset(self):
+        self.__best_child = None
+        self.__best_value = 0
+        self.__second_best_value = 0
+
+
+class Tree:
+
+    def __init__(self, config_path, confidence_threshold=0.2):
+
+        self.__confidence_threshold = confidence_threshold
+        
+        self.__node_leaf_index = {}  # leafs have clusters of WiSARDS, so is necessary be indexed to receive classification values 
+        self.__node_leaf_cluster = {}  # each leaf will have a cluster
+
+        self.__root = Node(name = "root")
+
+        #  creating the tree structure
+        config_file = open(config_path)
+        config = yaml.load(config_file)
+        node = config['config']
+        self.__create_tree(None, node)  
+
+    def fit(self, X, y):
+        for i in xrange(len(y)):
+            retina = X[i]
+            label = y[i]
+            self.__node_leaf_cluster[label].add_training(retina)
+
+    def predict(self, retina):
+        for node_leaf_name in self.__leaf_index:
+
+            value = self.__node_leaf_cluster[node_leaf_name].classify(retina)
+
+            leaf_node = self.__node_leaf_index[node_leaf_name]
+            leaf_node.set_value(value)
+            self.__up_information(leaf_node)
+
+        node_result, confidence = self.__down_selecting(self.__root)
+        self.__reset_tree()
+
+        return node_result, confidence
+
+    def __up_information(self, node):
+        parent = node.get_parent()
+        if parente == None:
+            return
+
+        updated = parent.propagate_value(node)
+        if updated:
+            self.__up_information(parent)
+    
+    def __down_selecting(self, node):
+        if node.get_confidence() < self.__confidence_threshold:  # if confidence is low
+            return node.get_name(), node.get_confidence()
+
+        else:
+            best_child = node.get_best_child()
+            if best_child == None:  # until a leaf
+                return node.get_name(), node.get_confidence()
+            else:
+                self.__down_selecting(best_child)
+
+    def  __reset_tree(self, node):
+        node.reset()
+        parent = node.get_parent()        
+        if parente == None:
+            return
+
+        self.__up_information(parent)
+        
+    def __create_tree(self, parent_node, node_conf):
+        
+        name = node_conf['name']
+        
+        if name != 'root':  # if is not the root node, create a new node
+            new_node = Node(name=name)
+            new_node.set_parent(parent_node)
+
+        else:  # if is the root node
+            new_node = self.__root
+        
+        # if is a leaf
+        if 'children' not in node_conf: 
+            self.__node_leaf_index[name] = new_node
+            return 
+        
+        for child in node_conf['children']:
+            child_node = self.__create_tree(new_node, child)
+
 
 
 class GenWiSARD:
