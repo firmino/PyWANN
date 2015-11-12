@@ -1,25 +1,20 @@
 config: 
 
-    base_path: '/home/fabricio/Desktop/images/'
-
     tree:
 
     -   name: root
-        path: .
-        parent: 
+
 
     -   name: filho1
-        path: filho1/
         parent: root
 
     -   name: neto1
-        path: neto1/
         parent: filho1
 
     -   name: neto2
-        path: neto2/
         parent: filho1
 
     -   name: filho2
-        path: path2
         parent: root
+
+

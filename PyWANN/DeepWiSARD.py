@@ -7,7 +7,11 @@ import numpy as np
 
 class DiscriminatorFactory:
 
-    def __init__(self, retina_length, num_bits_addr, randomize_positions=True):    
+    def __init__(self, 
+                 retina_length, 
+                 num_bits_addr, 
+                 randomize_positions=True):    
+
         self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
         self.__randomize_positions = randomize_positions
@@ -29,9 +33,9 @@ class DiscriminatorFactory:
                                   for i in xrange(0, self.__retina_length, self.__num_bits_addr) }
 
             #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
-            memories_template = { i/self.__num_bits_addr:  Memory( num_bits_addr = len(mapping_positions[i/self.__num_bits_addr] ), 
-                                                                   is_cummulative = False,
-                                                                   ignore_zero_addr = False)  \
+            memories_template = { i/self.__num_bits_addr: Memory( num_bits_addr = len(mapping_positions[i/self.__num_bits_addr] ), 
+                                                                  is_cummulative = False,
+                                                                  ignore_zero_addr = False)  \
                                   for i in xrange(0, self.__retina_length, self.__num_bits_addr)}
 
             d =  Discriminator(retina_length = self.__retina_length,
@@ -40,12 +44,17 @@ class DiscriminatorFactory:
             return d
 
 
-
 class Cluster:
     
-    def __init__(self, retina_length, num_bits_addr, randomize_positions=True, coverage_threshold=0.8):    
+    def __init__(self, 
+                 retina_length, 
+                 num_bits_addr, 
+                 randomize_positions=True, 
+                 coverage_threshold=0.8):    
         
-        self.__discriminator_factory = DiscriminatorFactory(retina_length, num_bits_addr, randomize_positions)
+        self.__discriminator_factory = DiscriminatorFactory(retina_length=retina_length, 
+                                                            num_bits_addr=num_bits_addr, 
+                                                            randomize_positions=randomize_positions)
         self.__coverage_threshold = coverage_threshold
         self.__cluster = []
 
@@ -87,13 +96,21 @@ class Cluster:
         return result
 
 
-
 class Node:
     
-    def __init__(self, name, retina_length, num_bits_addr, randomize_positions=True, coverage_threshold=0.8):
+    def __init__(self, 
+                 name, 
+                 retina_length, 
+                 num_bits_addr, 
+                 coverage_threshold=0.8, 
+                 randomize_positions=True):
+
         self.__name     = name
         self.__children = []
-        self.__cluster  = Cluster(retina_length, num_bits_addr, randomize_positions, coverage_threshold)
+        self.__cluster  = Cluster(retina_length=retina_length, 
+                                  num_bits_addr=num_bits_addr, 
+                                  randomize_positions=randomize_positions, 
+                                  coverage_threshold=coverage_threshold)
 
     def get_name(self):
         return self.__name
@@ -103,7 +120,7 @@ class Node:
             self.__cluster.add_training(retina)
 
     def predict(self, x):
-        self.__cluster.classify(x)
+        return self.__cluster.classify(x)
     
     def add_child(self, node_child):
         self.__children.append(node_child)
@@ -111,138 +128,95 @@ class Node:
     def get_children(self):
         return self.__children
 
-    
 
 class DeepWiSARD:
 
-    def __init__(self, config_path, num_bits, coverage_threshold, confidence_threshold=0.2):
+    def __init__(self,
+                 config_path,
+                 retina_length,
+                 num_bits_addr,
+                 coverage_threshold=0.8,
+                 confidence_threshold=0.2,
+                 randomize_positions=True):
 
         self.__config_path = config_path
+        self.__retina_length = retina_length
+        self.__num_bits_addr = num_bits_addr
+        self.__coverage_threshold = coverage_threshold
         self.__confidence_threshold = confidence_threshold
+        self.__randomize_positions = randomize_positions
+                
         self.__nodes = {}
-        
-
-       
+        self.__create_tree()
 
     def fit(self, X, y):
-        pass
-        # for i in xrange(len(y)):
-        #     retina = X[i]
-        #     label = y[i]
-        #     self.__node_leaf_cluster[label].add_training(retina)
+        for label in y:
+            self.__nodes[label].fit( X[label] )
 
     def predict(self, retina):
-        pass
-        # for node_leaf_name in self.__leaf_index:
-
-        #     value = self.__node_leaf_cluster[node_leaf_name].classify(retina)
-
-        #     leaf_node = self.__node_leaf_index[node_leaf_name]
-        #     leaf_node.set_value(value)
-        #     self.__up_information(leaf_node)
-
-        # node_result, confidence = self.__down_selecting(self.__root)
-        # self.__reset_tree()
-
-        # return node_result, confidence
-
-   
         
-    def __create_tree(self, config_path):
+        node = self.__nodes['root']
+
+        while True:
+            
+            best_node = None
+            best_value =  0
+            second_best_value = 0
+
+            for child_node in node.get_children():
+
+                value = child_node.predict(retina)
+
+
+                if value > best_value:
+                    second_best_value = best_value
+                    best_value = value
+                    best_node = child_node
+                    
+                # take care with ties, because i have to choose one node to explorer
+                elif value == best_value:
+                    best_value = value
+                    second_best_value = value
+                    best_node = child_node
+                    
+                elif value < best_value and value > second_best_value:
+                    second_best_value = value
+
+            
+            confidence = 1.0 - second_best_value/float(best_value)
+            
+            #  if the confidence 
+            if confidence < self.__confidence_threshold:
+                return node.get_name()
+
+            if len( best_node.get_children()) == 0:
+                return best_node.get_name()
+
+            node = best_node
+
+        
+    def __create_tree(self):
 
         #  creating the tree structure
-        config_file = open(config_path)
+        config_file = open(self.__config_path)
         config = yaml.load(config_file)
+        
         nodes_conf = config['config']
-        base_path = nodes_conf['base_path']
         
         for node_conf in nodes_conf['tree']:
-            print "NAME: ", node_conf['name']
-            print "PATH: ", base_path+node_conf['path']
-            print "PARENT: ", node_conf['parent']
-            print "-"*20
 
+            name = node_conf['name']
 
-# class DeepWiSARD:
+            #  creating the node
+            node = Node(name,
+                        self.__retina_length,
+                        self.__num_bits_addr,
+                        self.__coverage_threshold,
+                        self.__randomize_positions)
 
-#     def __init__(self, 
-#                  treeConfigPath,
-#                  retina_length,
-#                  num_bits_addr,
-#                  coverage_threshold=0.6,
-#                  randomize_positions=True):
-        
-#         self.__children_list = {}
-#         self.__tree = {}
-#         self.__coverage_threshold = 0.6
+            self.__nodes[name] = node
 
-
-#         # ################################################CREATING TEMPLATE OF DISCRIMINATORS###################################
-#         # #  generationg mapping positions
-#         # positions = np.arange(retina_length)
-#         # if randomize_positions:
-#         #     np.random.shuffle(positions)  # random positions 
-         
-#         #  #  spliting positions for each memory
-#         # mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
-#         #                              for i in xrange(0, retina_length, num_bits_addr) }
-
-#         # #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
-#         # memories_template = { i/num_bits_addr:  Memory( num_bits_addr = len(mapping_positions[i/num_bits_addr] ), 
-#         #                                                 is_cummulative = False,
-#         #                                                 ignore_zero_addr = False)  \
-#         #                       for i in xrange(0,retina_length, num_bits_addr)}
-
-
-#         # self.__discriminator_template = Discriminator(retina_length = retina_length,
-#         #                                               mapping_positions = mapping_positions,
-#         #                                               memories = memories_template) 
-#         # ######################################################################################################################
-
-#         # def get_confidence(self):        
-#         # if self.__best_value == 0:
-#         #     return 0
-#         # return 1.0 - float(self.__second_best_value)/float(self.__best_value)
-
-
-#         # #################################################GENERATING THE TREEE ################################################
-
-#         # config_file = open(treeConfigPath)
-#         # config = yaml.load(config_file)
-#         # node = config['config']
-#         # tree = self.__generate_tree(node)
-
-#         ######################################################################################################################
-
-
-#     # def __generate_tree(self, node_conf):
-
-#     #     label = node_conf['name']
-#     #     is_leaf = True
-#     #     if 'children' in node_conf: 
-#     #         is_leaf = False
-
-#     #     node = Node(label=label,
-#     #                 is_leaf=is_leaf,
-#     #                 discriminator_template=self.__discriminator_template,
-#     #                 coverage_threshold=self.__coverage_threshold)
-                
-#     #     if 'children' not in node_conf:
-#     #         self.__children_list [label] = node
-#     #         return node
-
-#     #     for child in node_conf['children']:
-#     #         child_node = self.__generate_tree(child)
-#     #         node.add_child(child_node)
-
-
-#     #     return node
-
-
-#     # def fit(self, X, y):
-#     #     num_samples =  len(y)
-#     #     for i in xrange(num_samples):
-#     #         retina = X[i]
-#     #         label = y[i]
-#     #         self.__children_list[label].add_training(retina)
-
+            #  add node to parent
+            if name != 'root':
+                parent_name = node_conf['parent']
+                self.__nodes[parent_name].add_child(node)

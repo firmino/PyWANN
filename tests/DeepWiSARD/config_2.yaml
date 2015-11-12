@@ -1,0 +1,12 @@
+config: 
+
+
+    tree:
+
+    -   name: root
+
+    -   name: T
+        parent: root
+
+    -   name: A
+        parent: root
