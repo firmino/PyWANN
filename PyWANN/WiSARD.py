@@ -203,7 +203,7 @@ class WiSARD:
             confidence = self.__calc_confidence(result_sum)
 
             while confidence < self.__confidence_threshold:
-                result_sum = np.sum(result_value[:]>=1, axis=1)
+                result_sum = np.sum(result_value[:]>=b, axis=1)
                 confidence = self.__calc_confidence(result_sum)
                 b += 1
 
