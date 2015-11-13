@@ -132,22 +132,22 @@ class Node:
 class DeepWiSARD:
 
     def __init__(self,
-                 config_path,
+                 config_tree,
                  retina_length,
                  num_bits_addr,
                  coverage_threshold=0.8,
                  confidence_threshold=0.2,
                  randomize_positions=True):
 
-        self.__config_path = config_path
+        
         self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
         self.__coverage_threshold = coverage_threshold
         self.__confidence_threshold = confidence_threshold
         self.__randomize_positions = randomize_positions
                 
-        self.__nodes = {}
-        self.__create_tree()
+        self.__nodes = self.__create_tree(config_tree)
+
 
     def fit(self, X, y):
         for label in y:
@@ -195,15 +195,12 @@ class DeepWiSARD:
             node = best_node
 
         
-    def __create_tree(self):
+    def __create_tree(self, config_tree):
+
+        node_tree = {}
 
         #  creating the tree structure
-        config_file = open(self.__config_path)
-        config = yaml.load(config_file)
-        
-        nodes_conf = config['config']
-        
-        for node_conf in nodes_conf['tree']:
+        for node_conf in config_tree:
 
             name = node_conf['name']
 
@@ -214,9 +211,11 @@ class DeepWiSARD:
                         self.__coverage_threshold,
                         self.__randomize_positions)
 
-            self.__nodes[name] = node
+            node_tree[name] = node
 
             #  add node to parent
             if name != 'root':
                 parent_name = node_conf['parent']
-                self.__nodes[parent_name].add_child(node)
+                node_tree[parent_name].add_child(node)
+
+        return node_tree

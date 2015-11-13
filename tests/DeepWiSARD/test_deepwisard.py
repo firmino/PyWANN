@@ -8,14 +8,19 @@ class TestDeepWiSARD(unittest.TestCase):
 
     def test_create_tree(self):
  
-        config_path = "tests/DeepWiSARD/config.yaml"
+        config_tree = [{'name':'root'  ,'parent': None},
+                       {'name':'filho1','parent': 'root'},
+                       {'name':'neto1' ,'parent': 'filho1'},
+                       {'name':'neto2'  ,'parent': 'filho1'},
+                       {'name':'filho2'  ,'parent': 'root'}]
+
         num_bits_addr = 3
         retina_length = 64
         coverage_threshold = 0.8
         confidence_threshold = 0.2
         randomize_positions = True
 
-        t = DeepWiSARD(config_path,
+        t = DeepWiSARD(config_tree,
                        retina_length,
                        num_bits_addr,
                        coverage_threshold,
@@ -28,7 +33,10 @@ class TestDeepWiSARD(unittest.TestCase):
 
     def test_fit_and_predict(self):
 
-        config_path = "tests/DeepWiSARD/config_2.yaml"
+        config_tree = [{'name':'root'  ,'parent': None},
+                       {'name':'T','parent': 'root'},
+                       {'name':'A' ,'parent': 'root'}]
+
         retina_length = 64
         num_bits_addr = 3
         coverage_threshold = 0.9
@@ -38,8 +46,7 @@ class TestDeepWiSARD(unittest.TestCase):
         y = ['A','T']
         X = {'A':A_samples, 'T':T_samples}
 
-
-        t = DeepWiSARD(config_path,
+        t = DeepWiSARD(config_tree,
                        retina_length,
                        num_bits_addr,
                        coverage_threshold,
