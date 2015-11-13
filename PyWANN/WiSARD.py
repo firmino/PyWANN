@@ -215,6 +215,8 @@ class WiSARD:
             
         # getting max value
         max_value = results.max()
+        if(max_value == 0):
+            return 0
 
         # getting second max value
         second_max = max_value
