@@ -33,9 +33,9 @@ class DiscriminatorFactory:
                                   for i in xrange(0, self.__retina_length, self.__num_bits_addr) }
 
             #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
-            memories_template = { i/self.__num_bits_addr: Memory( num_bits_addr = len(mapping_positions[i/self.__num_bits_addr] ), 
-                                                                  is_cummulative = False,
-                                                                  ignore_zero_addr = False)  \
+            memories_template = { i/self.__num_bits_addr: Memory( num_bits_addr    = len(mapping_positions[i/self.__num_bits_addr] ), 
+                                                                  is_cummulative   = False,
+                                                                  ignore_zero_addr = True)  \
                                   for i in xrange(0, self.__retina_length, self.__num_bits_addr)}
 
             d =  Discriminator(retina_length = self.__retina_length,
@@ -70,7 +70,7 @@ class Cluster:
 
             #  coverage is the percentual of memories that recognize the pattern
             coverage = num_memories_accessed/float(num_memories)
-
+            
             if coverage >= self.__coverage_threshold:
                 d.add_training(retina)
                 trained = True
@@ -93,7 +93,12 @@ class Cluster:
 
             if result < new_result:
                 result = new_result
+
+        print result
         return result
+
+    def get_num_discriminators(self):
+        return len(self.__cluster)
 
 
 class Node:
@@ -116,7 +121,9 @@ class Node:
         return self.__name
 
     def fit(self, X):
+        count = 0
         for retina in X:
+            count +=1
             self.__cluster.add_training(retina)
 
     def predict(self, x):
@@ -127,6 +134,9 @@ class Node:
 
     def get_children(self):
         return self.__children
+
+    def get_num_discriminators(self):
+        return self.__cluster.get_num_discriminators()
 
 
 class DeepWiSARD:
@@ -150,13 +160,12 @@ class DeepWiSARD:
 
 
     def fit(self, X, y):
-        for label in y:
-            self.__nodes[label].fit( X[label] )
+        self.__nodes[y].fit(X)
 
     def predict(self, retina):
         
         node = self.__nodes['root']
-
+        result = ['root']
         while True:
             
             best_node = None
@@ -182,19 +191,30 @@ class DeepWiSARD:
                 elif value < best_value and value > second_best_value:
                     second_best_value = value
 
-            
-            confidence = 1.0 - second_best_value/float(best_value)
+            if best_value == 0:
+                confidence = 0
+            else:            
+                confidence = 1.0 - second_best_value/float(best_value)
             
             #  if the confidence 
-            if confidence < self.__confidence_threshold:
-                return node.get_name()
+            #if confidence < self.__confidence_threshold:
+            #       return result
+                #return node.get_name()
 
             if len( best_node.get_children()) == 0:
+                #return result
                 return best_node.get_name()
 
             node = best_node
+            
 
-        
+    
+    def get_stats(self):
+        stats = {}
+        for node_name in self.__nodes:
+            stats[node_name] = self.__nodes[node_name].get_num_discriminators()
+        return stats
+
     def __create_tree(self, config_tree):
 
         node_tree = {}
