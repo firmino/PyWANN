@@ -17,15 +17,20 @@ class Node:
         result = np.sum(X, axis=0)
         
         mean = np.mean(result)
-        std = np.std(result)
+        #std  = np.std(result)
 
-        result_binarized = np.where(result > (mean-2*std), 1, 0)
-        self.__vector_class = result_binarized
+        #result_binarized = np.where(result > (mean-3*std), 1, 0)
+        #result_binarized = np.where(result > 0, 1, 0)
+        #self.__vector_class = result_binarized
+        self.__vector_class = result
 
     def predict(self, x):
         x = np.array(x)
-        diff = x - self.__vector_class
-        return np.count_nonzero(diff >= 0)
+        
+        if np.linalg.norm(self.__vector_class) * np.linalg.norm(x) == 0:
+            return 0.0
+        return np.inner(self.__vector_class, x) / float(np.linalg.norm(self.__vector_class) * np.linalg.norm(x) )
+
     
     def add_child(self, node_child):
         self.__children.append(node_child)
@@ -45,11 +50,10 @@ class DeepWiSARD:
         self.__nodes[y].fit(X)
 
     def predict(self, retina):
-        
+
         node = self.__nodes['root']
-        result = ['root']
+        
         while True:
-            
             best_node = None
             best_value =  0
             second_best_value = 0
@@ -72,13 +76,13 @@ class DeepWiSARD:
                 elif value < best_value and value > second_best_value:
                     second_best_value = value
 
-            confidence = 0
-            if best_value != 0:
-                confidence = 1.0 - second_best_value/float(best_value)
+            # confidence = 0
+            # if best_value != 0:
+            #     confidence = 1.0 - second_best_value/float(best_value)
             
-            #  if the confidence 
-            if confidence < self.__confidence_threshold:
-                return node.get_name()
+            # #  if the confidence 
+            # if confidence < self.__confidence_threshold:
+            #     return node.get_name()
 
             if len( best_node.get_children()) == 0:
                 return best_node.get_name()
