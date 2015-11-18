@@ -1,232 +1,409 @@
 # -*- coding: utf-8 -*-
+import random as rand
+import itertools
+import math
 
-import numpy as np
-import copy
+
+class Retina:
+
+    def __init__(self, data):
+
+        self.__data = None
+
+        if type(data) is not list:
+            raise Exception('data must be a multidimensional list')
+
+        if len(data) == 0:
+            raise Exception('data in the list can not be void')
+
+        if isinstance(data[0], list) and \
+           isinstance(data[0][0], list):  # check if data is bigger than 2
+
+            raise Exception('data must be 1-dimensional or 2-dimensional')
+
+        # check if data is 2-dimensional
+        if isinstance(data[0], list):
+            aux = []
+            # converting matrix to a list of elements
+            for i in xrange(len(data)):  # for each line
+                for j in xrange(len(data[0])):  # for each column
+                    value = 1 if data[i][j] > 0 else 0
+                    aux.append(value)
+            self.__data = aux
+
+        # if is data is 1-dimensional
+        else:
+            self.__data = data
+
+    def get_data(self):
+        return self.__data
 
 
 class Memory:
 
-    def __init__(self, num_bits_addr=2, is_cummulative=True, ignore_zero_addr=False):
-        
+    def __init__(self, num_bits=2, is_cummulative=False, ignore_zero_addr=False):
         self.__data = {}
-        self.__num_bits_addr = num_bits_addr
+        self.__num_bits = num_bits
         self.__is_cummulative = is_cummulative
         self.__ignore_zero_addr = ignore_zero_addr
-    
+
     def get_memory_size(self):  
-        return 2**self.__num_bits_addr
-    
+        return 2**self.__num_bits
+
     def add_value(self, addr, value=1):
-        
-        if (not isinstance( addr, int )):
-            raise Exception('addr must be a integer')
+
+        if type(addr) != list:
+            raise Exception("address' type is not a list")
+
+        if len(addr) > self.__num_bits:
+            raise Exception('number of the bits of address are bigger \
+                             than max size')
+
+        # bit list to int
+        int_position = self.__list_to_int(addr)
 
         if self.__is_cummulative:
-            if addr in self.__data:
-                self.__data[addr] += value
+            if int_position in self.__data:
+                self.__data[int_position] += value
             else:
-                self.__data[addr] = value
+                self.__data[int_position] = value
         else:
-            self.__data[addr] = 1
+            self.__data[int_position] = value
 
     def get_value(self, addr):
-
+        int_position = self.__list_to_int(addr)
+        
         # ignore zero is for cases where 0 addr are not important (is a parameter in the WiSARD)
-        if self.__ignore_zero_addr and addr == 0:
-            return 0
+        if self.__ignore_zero_addr and int_position == 0:
+        	return 0
 
-        if addr not in self.__data:
+        if int_position not in self.__data:
             return 0
         else:
-            return self.__data[addr]
+            return self.__data[int_position]
 
-    def __int_to_binary(self, addr):
-
-        bin_addr = np.zeros(self.__num_bits_addr)
-
-        quoc = addr
-        for i in xrange(self.__num_bits_addr):
-            rest = quoc % 2
-            quoc = quoc / 2
-
-            bin_addr [self.__num_bits_addr - 1 - i] = rest
-
-        return bin_addr
-
-
-    def get_part_DRASiW(self):
-
-        part_DRASiW =  np.zeros(self.__num_bits_addr)
-        
-        for addr_key in  self.__data:
-            value = self.__data[addr_key]
-            bin_addr = self.__int_to_binary(addr_key)
-
-            for bit_posi in xrange(len(bin_addr)):
-                bit = bin_addr[bit_posi]
-                
-                if bit == 1 and value > 0:
-
-                    if self.__is_cummulative:
-                        part_DRASiW[bit_posi] += value
-                    else:
-                        part_DRASiW[bit_posi] = 1
-
-        return part_DRASiW
+    def __list_to_int(self, addr_list):
+        reverse_list = addr_list[-1::-1]
+        return sum([(2**i*reverse_list[i]) for i in xrange(len(reverse_list))])
 
 
 class Discriminator:
 
     def __init__(self,
                  retina_length,
-                 mapping_positions,
-                 memories):
+                 num_bits_addr,
+                 position_list,
+                 memories_values_cummulative=False,
+                 ignore_zero_addr=False):
 
-        self.__retina_length = retina_length        
-        self.__mapping_positions = mapping_positions
-        self.__memories = memories
+        self.__retina_length = retina_length
+        self.__num_bits_addr = num_bits_addr
+        self.__memories = {}
+        self.__memories_mapping = {}
+
+        # calculating the number of memories
+        num_mem = retina_length // num_bits_addr
+
+        # creating list of memories
+        for i in xrange(num_mem):
+            self.__memories[i] = Memory(self.__num_bits_addr,
+                                        memories_values_cummulative,
+                                        ignore_zero_addr)
+
+        # mapping positions for each memory
+        for i in xrange(num_mem):
+            init = i * num_bits_addr
+            end = init + num_bits_addr
+            self.__memories_mapping[i] = position_list[init:end]
+
+        # if the retina's length is not a multiple of number of bits of
+        # addressing, it is necessary create a smaller memory to map all
+        # positions. This memory will have the number of address bits equal to
+        # module of number of memories for number of bits of addressing
+        self.__num_bits_addr_final = retina_length % num_bits_addr
+        if self.__num_bits_addr_final > 0:
+            # adding in the last position of the list (position equal
+            # num_mem)
+            self.__memories[num_mem] = Memory(self.__num_bits_addr_final,
+                                              memories_values_cummulative,
+                                              ignore_zero_addr)
+
+            # getting the last positions to mapping, how they are in the end of
+            # the randomized position list, we are using negative
+            # index of python
+            position_map = -1 * self.__num_bits_addr_final
+            self.__memories_mapping[num_mem] = position_list[position_map:]
 
     def get_memories(self):
-        
         return self.__memories
 
     def get_memories_mapping(self):
-        
-        return self.__mapping_positions
+        return self.__memories_mapping
 
     def get_memory(self, index):
-        
         return self.__memories[index]
 
+    def get_mapping(self, index):
+        return self.__memories_mapping[index]
+
     def add_training(self, retina):
+        # for each mapping position in retina, each position has n bits
+        # correspond an only one memory
+        for memory_key in self.__memories_mapping:
 
-        for (mem_index, mapping) in self.__mapping_positions.iteritems():
-            
-            #  calculating the position (addr) that will be insert a value into the memory
-            #  indexed by mem_index
-            addr = 0
-            for i in xrange(len(mapping)):
-                addr += 2 ** i * retina[ mapping[i] ] 
+            addr_list = []
 
-            self.__memories[mem_index].add_value(addr)
+            # get the mapping positions (size is equal of number of address
+            # in the memory)
+            position_list = self.__memories_mapping[memory_key]
+
+            # for each position mapped get binary value (1 if position has
+            # value positive and 0 otherwise)
+            for position in position_list:
+                if retina.get_data()[position] > 0:
+                    addr_list.append(1)
+                else:
+                    addr_list.append(0)
+
+            # add value 1 into the positon (defined by addr_list)
+            self.__memories[memory_key].add_value(addr_list, 1)
 
     def classify(self, retina):
-        
-        result = np.zeros(len(self.__memories))
-        for (mem_index, mapping) in self.__mapping_positions.iteritems():
-            
-            #  calculating the position (addr) that will be insert a value into the memory
-            #  indexed by mem_index
-            addr = 0
-            for i in xrange(len(mapping)):                
-                addr += 2 ** i * retina[ mapping[i] ] 
+        result = []
 
-            result[mem_index] = self.__memories[mem_index].get_value(addr)
+        # for each mapping position in retina, each position of n bits
+        # correspond an only one memory
+        for memory_key in self.__memories_mapping:
+            addr_list = []
+
+            # get the mapping positions (size is equal of number of address
+            # in the memory)
+            position_list = self.__memories_mapping[memory_key]
+
+            for position in position_list:
+                if retina.get_data()[position] > 0:
+                    addr_list.append(1)
+                else:
+                    addr_list.append(0)
+
+            result.append(self.__memories[memory_key].get_value(addr_list))
 
         return result
 
-    def get_DRASiW(self):
+    def get_drasiw(self):
 
-        DRASiW = np.zeros(self.__retina_length)  # DRASiW is like a retina of stored positions
+        # generate all combinations of possible addres with self.__num_bits
+        addr_list = list(itertools.product([0, 1], repeat=self.__num_bits))
+
+        # for each memory
+        for memory_key in self.__memories_mapping:
+
+            # get relatated position in retina
+            positions = self.__memories_mapping[memory_key]
+
+            # get the memory
+            memory = self.__memories[memory_key]
+            
+
+            #for addr in addr_list:
+
+
+
+            
+
         
-        for (mem_index, mapping) in self.__mapping_positions.iteritems():
-
-            DRASiW_part = self.__memories[mem_index].get_part_DRASiW()
-
-            for i in xrange(len(mapping)):
-                DRASiW[ mapping[i] ] = DRASiW_part[i]
-
-        return DRASiW
 
 class WiSARD:
 
     def __init__(self,
-                 retina_length,
-                 num_bits_addr,
-                 bleaching=True,
-                 confidence_threshold=0.1,
-                 ignore_zero_addr=False, 
-                 defaul_b_bleaching=1,
+                 retina_size,
+                 num_bits_addr=2,
+                 vacuum=False,
+                 bleaching=False,
+                 confidence_threshold=0.6,
                  randomize_positions=True,
-                 memory_is_cumulative=True):
+                 default_bleaching_b_value=3,
+                 ignore_zero_addr=False):
 
-        self.__retina_length = retina_length
-        self.__bleaching = bleaching
-        self.__defaul_b_bleaching = defaul_b_bleaching
-        self.__discriminators = {}
+        self.__num_bits_addr = num_bits_addr
+        self.__retina_size = retina_size
         self.__confidence_threshold = confidence_threshold
-        
-        positions = np.arange(retina_length)
-        if randomize_positions:
-            np.random.shuffle(positions)
+        self.__is_cumulative = False
 
-        #  spliting positions for each memory
-        self.__mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
-                                     for i in xrange(0, retina_length, num_bits_addr) }
+        self.__discriminators = {}
+        self.__position_list = None
+        self.__ignore_zero_addr = ignore_zero_addr
+        self.__randomize_positions = randomize_positions
+        self.__confidence_threshold = confidence_threshold
 
-        #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
-        self.__memories_template = { i/num_bits_addr:  Memory( num_bits_addr = len(self.__mapping_positions[i/num_bits_addr] ), 
-                                                               is_cummulative = memory_is_cumulative,
-                                                               ignore_zero_addr = ignore_zero_addr)  \
-                                   for i in xrange(0,retina_length, num_bits_addr)}
+        self.__bleaching = None
+        self.__vacuum = None
 
+        if bleaching:
+            self.__is_cumulative = True
+            self.__bleaching = Bleaching(default_bleaching_b_value)
 
+        if vacuum:
+            self.__is_cumulative = True
+            self.__vacuum = Vacuum()
 
     def create_discriminator(self, name):
-        #  have to copy() memories or all discriminator will have the same set of memories
-        new_memories = copy.deepcopy(self.__memories_template)
-        self.__discriminators[name] = Discriminator(retina_length = self.__retina_length,
-                                                    mapping_positions = self.__mapping_positions,
-                                                    memories = new_memories) 
-        
 
+        # if there is not a mapping position defined
+        if self.__position_list is None:
+            self.__generate_position_list(self.__retina_size)
 
-    #  X is a matrix of retinas (each line will be a retina)
-    #  y is a list of label (each line defina a retina in the same position in Y)
-    def fit(self, X, y):
-        num_samples =  len(y)
-        for i in xrange(num_samples):
-            retina = X[i]
-            label = y[i]
-            self.__discriminators[label].add_training (retina)
-        
-    def predict(self, x):
-        
-        discriminator_names = [class_name for class_name in self.__discriminators]
+        # creating discriminator
+        self.__discriminators[name] = Discriminator(self.__retina_size,
+                                                    self.__num_bits_addr,
+                                                    self.__position_list,
+                                                    self.__is_cumulative,
+                                                    self.__ignore_zero_addr)
 
-        result_value = np.array( [ self.__discriminators[class_name].classify(x) \
-                                    for class_name in discriminator_names] )
+    # add a example to training in an especific discriminator
+    # def add_training(self, disc_name, training_example):
+    def add_training(self, disc_name, training_example):
 
-        result_sum = np.sum(result_value[:]>=1, axis=1) 
-        
-        if self.__bleaching:
-            b = self.__defaul_b_bleaching
-            confidence = self.__calc_confidence(result_sum)
+        if disc_name not in self.__discriminators:
+            raise Exception('the discriminator does not exist')
 
-            while confidence < self.__confidence_threshold:
-                result_sum = np.sum(result_value[:]>=b, axis=1)
-                confidence = self.__calc_confidence(result_sum)
-                b += 1
+        r = Retina(training_example)
+        self.__discriminators[disc_name].add_training(r)
 
-        result = { discriminator_names[i] : result_sum[i] for i in xrange(len(result_sum) )}
+    def fit(self, list_of_examples, list_of_disc_names):
+    	for i in xrange(list_of_examples):
+    		add_training(list_of_disc_names[i], list_of_examples[i])
+
+    def predict(self, example):
+        result = {}  # classes and values
+        memory_result = {}  # for each class the memories values obtained
+
+        # transform example into a retina
+        r = Retina(example)
+
+        for class_name in self.__discriminators:
+
+            # for each class the memorie values obtained
+            memory_result[class_name] = self.__discriminators[class_name] \
+                                            .classify(r)
+
+            # for each class, store the value
+            result[class_name] = sum(memory_result[class_name])
+
+        # applying bleaching method if it is selected
+        if self.__bleaching is not None:
+            result = self.__bleaching.run(memory_result,
+                                          self.__confidence_threshold)
+
+        # applying vacuum method if it is selected
+        if self.__vacuum is not None:
+            result = self.__vacuum.run(memory_result)
 
         return result
-        
-    def __calc_confidence(self,results):
-            
-        # getting max value
-        max_value = results.max()
-        if(max_value == 0):
-            return 0
 
-        # getting second max value
-        second_max = max_value
-        if results[results < max_value].size > 0:
-            second_max = results[results < max_value].max()
-        
-        # calculating confidence value
-        c = 1 - float(second_max) / float(max_value)
+    def __generate_position_list(self, retina_length):
 
-        return c
+        # generating all possible positions
+        position_list = range(retina_length)
+
+        # mapping random positions (if randomize_positions is True)
+        if self.__randomize_positions:  # random positions to mapping aleatory
+            rand.shuffle(position_list)
+
+        self.__position_list = position_list
+
+
+class Bleaching:
+
+    def __init__(self, ini_b):
+        self.__initial_b = ini_b
+
+    def run(self, memory_result, confidence_threshold):
+        b = self.__initial_b
+        previous_result = {}  # if it is not possible continue the method
+        result = {}
+
+        for class_name in memory_result:
+            valid_values = [1 for x in memory_result[class_name] if x >= b]
+            result[class_name] = sum(valid_values)
+
+        previous_result = result.copy()
+        confidence = Util.calc_confidence(result)
+
+        while confidence < confidence_threshold:
+
+            previous_result = result
+            result = {}
+            # generating a new result list using bleaching
+            for class_name in memory_result:
+                valid_values = [1 for x in memory_result[class_name] if x >= b]
+                result[class_name] = sum(valid_values)
+
+            # recalculating confidence
+            confidence = Util.calc_confidence(result)
+            if confidence == -1:
+                return previous_result
+
+            b += 1  # next value of b
+
+        return result
+
+
+class Vacuum:
+
+    def run(self, list_of_memories):
+        result = {}
+        num_columns = len(list_of_memories.values()[0])
+        sum_list = [0]*num_columns
 
         
+        for class_name in list_of_memories:
+            result[class_name] = sum(list_of_memories[class_name])
+
+        confidence = Util.calc_confidence(result)
+        
+
+        # sum all memories positions
+        for class_name in list_of_memories:
+            for column in xrange(num_columns):
+                sum_list[column] += list_of_memories[class_name][column]
+
+        # calculating the average for each position
+        avg = [0]*num_columns
+        for column in xrange(num_columns):
+            avg[column] = float(sum_list[column])/len(list_of_memories)
+
+        # applying the vacuumn in each memory
+        for class_name in list_of_memories:
+            sum_mem = 0
+            for column in xrange(num_columns):
+                if list_of_memories[class_name][column] > avg[column]*(1-confidence):
+                    sum_mem += 1
+            result[class_name] = sum_mem
+        return result
+
+
+class Util:
+
+    @staticmethod
+    def calc_confidence(list_of_results):
+
+        try:
+            values = list_of_results.values()
+
+            # getting max value
+            max_value = max(values)
+
+            # removing max from the list
+            values.remove(max_value)
+
+            # getting second max value
+            second_max = max(values)
+
+            # calculating confidence value
+            c = 1 - float(second_max)**4 / float(max_value)**4
+
+            return c
+
+        except Exception, Error:
+            return -1
