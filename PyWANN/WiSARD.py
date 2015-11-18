@@ -216,7 +216,7 @@ class Discriminator:
 class WiSARD:
 
     def __init__(self,
-                 retina_size,
+                 retina_length,
                  num_bits_addr=2,
                  vacuum=False,
                  bleaching=False,
@@ -226,7 +226,7 @@ class WiSARD:
                  ignore_zero_addr=False):
 
         self.__num_bits_addr = num_bits_addr
-        self.__retina_size = retina_size
+        self.__retina_length = retina_length
         self.__confidence_threshold = confidence_threshold
         self.__is_cumulative = False
 
@@ -251,10 +251,10 @@ class WiSARD:
 
         # if there is not a mapping position defined
         if self.__position_list is None:
-            self.__generate_position_list(self.__retina_size)
+            self.__generate_position_list(self.__retina_length)
 
         # creating discriminator
-        self.__discriminators[name] = Discriminator(self.__retina_size,
+        self.__discriminators[name] = Discriminator(self.__retina_length,
                                                     self.__num_bits_addr,
                                                     self.__position_list,
                                                     self.__is_cumulative,
@@ -271,8 +271,8 @@ class WiSARD:
         self.__discriminators[disc_name].add_training(r)
 
     def fit(self, list_of_examples, list_of_disc_names):
-    	for i in xrange(list_of_examples):
-    		add_training(list_of_disc_names[i], list_of_examples[i])
+    	for i in xrange(len(list_of_examples)):
+    		self.add_training(list_of_disc_names[i], list_of_examples[i])
 
     def predict(self, example):
         result = {}  # classes and values
