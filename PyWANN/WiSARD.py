@@ -111,13 +111,14 @@ class Discriminator:
             self.__memories[mem_index].add_value(addr)
 
     def classify(self, retina):
+        
         result = np.zeros(len(self.__memories))
         for (mem_index, mapping) in self.__mapping_positions.iteritems():
             
             #  calculating the position (addr) that will be insert a value into the memory
             #  indexed by mem_index
             addr = 0
-            for i in xrange(len(mapping)):
+            for i in xrange(len(mapping)):                
                 addr += 2 ** i * retina[ mapping[i] ] 
 
             result[mem_index] = self.__memories[mem_index].get_value(addr)
@@ -227,5 +228,3 @@ class WiSARD:
         c = 1 - float(second_max) / float(max_value)
 
         return c
-
-        
