@@ -9,18 +9,23 @@ pip install git+git://github.com/firmino/PyWANN.git
 
 ## Inputs
 
-Python lists or Numpy array
+Python lists or Numpy array.
+
+X is a list retinas and y is a list of class related with each retina. 
 
 ex: 
 ```python
- [0, 1, 0, 0, 0, 0, 0, 0,
-  0, 0, 1, 1, 1, 1, 0, 0,
-  0, 0, 1, 0, 0, 0, 1, 0,
-  1, 0, 0, 0, 0, 0, 0, 1,
-  1, 1, 0, 1, 1, 1, 1, 1,
-  1, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 1, 0, 0, 1,
-  1, 0, 0, 0, 0, 0, 0, 1]
+ X = [ [0, 1, 0, 0, 0, 0, 0, 0],
+       [0, 0, 1, 1, 1, 1, 0, 0],
+       [0, 0, 1, 0, 0, 0, 1, 0],
+       [1, 0, 0, 0, 0, 0, 0, 1],
+       [1, 1, 0, 1, 1, 1, 1, 1],
+       [1, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 1, 0, 0, 1],
+       [1, 0, 0, 0, 0, 0, 0, 1]]
+
+y = ['class_a','class_a','class_b','class_b','class_a','class_a','class_b','class_a',]
+
 ```
 
 ### WiSARD Parameters
