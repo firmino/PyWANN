@@ -196,10 +196,8 @@ class WiSARD:
     def __predict_one(self, x):
         
         discriminator_names = [class_name for class_name in self.__discriminators]
-
         result_value = np.array( [ self.__discriminators[class_name].classify(x) \
                                     for class_name in discriminator_names] )
-
         result_sum = np.sum(result_value[:]>=1, axis=1) 
         
         if self.__bleaching:
