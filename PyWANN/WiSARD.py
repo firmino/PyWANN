@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
-
 import numpy as np
 import copy
-
 
 class Memory:
 
     def __init__(self, num_bits_addr=2, is_cummulative=True, ignore_zero_addr=False):
-        
         self.__data = {}
         self.__num_bits_addr = num_bits_addr
         self.__is_cummulative = is_cummulative
@@ -17,7 +14,6 @@ class Memory:
         return 2**self.__num_bits_addr
     
     def add_value(self, addr, value=1):
-        
         if (not isinstance( addr, int )):
             raise Exception('addr must be a integer')
 
@@ -28,7 +24,6 @@ class Memory:
                 self.__data[addr] = value
         else:
             self.__data[addr] = 1
-
     def get_value(self, addr):
 
         # ignore zero is for cases where 0 addr are not important (is a parameter in the WiSARD)
@@ -172,25 +167,33 @@ class WiSARD:
 
 
 
-    def create_discriminator(self, name):
+    def __create_discriminator(self, name):
         #  have to copy() memories or all discriminator will have the same set of memories
         new_memories = copy.deepcopy(self.__memories_template)
         self.__discriminators[name] = Discriminator(retina_length = self.__retina_length,
                                                     mapping_positions = self.__mapping_positions,
-                                                    memories = new_memories) 
-        
-
+                                                    memories = new_memories)
 
     #  X is a matrix of retinas (each line will be a retina)
     #  y is a list of label (each line defina a retina in the same position in Y)
     def fit(self, X, y):
         num_samples =  len(y)
+        for label in set(y):
+            self.__create_discriminator(label)
         for i in xrange(num_samples):
             retina = X[i]
             label = y[i]
-            self.__discriminators[label].add_training (retina)
+            self.__discriminators[label].add_training(retina)
         
-    def predict(self, x):
+    def predict(self, X):
+        total_result = []
+        for i in xrange(len(X)):
+            result = self.__predict_one(X[i])
+            max_result = max(result, key=result.get)
+            total_result.append(max_result)
+        return total_result
+
+    def __predict_one(self, x):
         
         discriminator_names = [class_name for class_name in self.__discriminators]
 
@@ -228,3 +231,56 @@ class WiSARD:
         c = 1 - float(second_max) / float(max_value)
 
         return c
+
+if __name__ == '__main__':
+    from mnist import MNIST
+    import time
+    from sklearn import metrics
+    time1 = time.time()
+    mndata = MNIST('/home/rangel/Desktop/Dataset_MINST/')
+    X_not_binary, y = mndata.load_training()
+    X_test_not_binary, y_test = mndata.load_testing()
+
+    X = []
+    X_test = []
+    tam = len(X_not_binary[0])
+
+    y = list(y)
+    y_test = list(y_test)
+
+    for ex in X_not_binary:
+        for i in xrange(tam):
+            if ex[i] < 100:
+                ex[i] = 0
+            else:
+                ex[i] = 1
+        X.append(ex)
+
+    for ex in X_test_not_binary:
+        for i in xrange(tam):
+            if ex[i] < 100:
+                ex[i] = 0
+            else:
+                ex[i] = 1
+        X_test.append(ex)
+
+    print "Tempo para binarizar a base", time.time() - time1
+    time1 = time.time()
+
+    w = WiSARD( retina_length = tam,
+                num_bits_addr = 6,
+                bleaching=False,
+                confidence_threshold=0.1,
+                ignore_zero_addr=False, 
+                defaul_b_bleaching=1,
+                randomize_positions=True,
+                memory_is_cumulative=True )
+    w.fit(X[:1000], y[:1000])
+
+    print "Tempo para fit", time.time() - time1
+    time1 = time.time()
+
+    prediction = w.predict(X_test[:1000])
+
+    print "Tempo para prediction", time.time() - time1
+    print metrics.accuracy_score(y_test[:1000], prediction)
