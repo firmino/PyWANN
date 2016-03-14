@@ -1,7 +1,6 @@
-
 import unittest
 
-from PyWANN.WiSARD  import Memory
+from PyWANN.Memory  import Memory
 import numpy as np
 
 

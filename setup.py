@@ -13,8 +13,10 @@ setup(
     license='Apache License',
     install_requires=['setuptools', 'numpy', 'pyyaml'],
 
-    package_dir={'WiSARD':    './PyWANN/WiSARD', \
-                 'DeepWiSARD': './PyWANN/DeepWiSARD'}
+    package_dir={'Memory': './PyWANN/Memory', \
+                 'Discriminator': './PyWANN/Discriminator', \
+                 'WiSARD': './PyWANN/WiSARD', \
+                 'OnFiRE': './PyWANN/OnFiRE'}
 
     )
 
