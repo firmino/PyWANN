@@ -50,18 +50,17 @@ class TestDiscriminator(unittest.TestCase):
         retina_length = 9
 
         d = Discriminator(retina_length,
-                          num_bits_addr)
+                          num_bits_addr,
+                          random_positions=False)
 
         d.add_training(data1)
         d.add_training(data2)
+        d.add_training(2)
+
 
         result = d.predict(test_positive)
-        print "\n"
-        print "-----------"
-        print "RESULT: ", result
-        print "-----------"
-
-        #self.assertTrue(np.array_equal(result, ))
+        
+        self.assertTrue(np.array_equal(result,[2,2,1] ))
 
     # def test_drasiw(self):
 

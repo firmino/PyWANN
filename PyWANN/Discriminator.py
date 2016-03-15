@@ -14,6 +14,25 @@ class Discriminator:
                  random_positions=True,
                  seed=424242):
 
+        if (not isinstance(retina_length, int)):
+            raise Exception('retina_length must be a integer')
+
+        if (not isinstance(num_bits, int)):
+            raise Exception('num_bits must be a integer')
+
+        if (not isinstance(memory_is_cumulative, bool)):
+            raise Exception('memory_is_cumulative must be a boolean')
+
+        if (not isinstance(ignore_zero_addr, bool)):
+            raise Exception('ignore_zero_addr must be a boolean')
+
+        if (not isinstance(random_positions, bool)):
+            raise Exception('random_positions must be a boolean')
+
+        if (not isinstance(seed, int)):
+            raise Exception('seed must be a boolean')
+
+
         self.__retina_length = retina_length
         self.__num_bits = num_bits
 
@@ -39,11 +58,17 @@ class Discriminator:
             self.__memories.append(m)
 
     def add_training(self, retina):
-        for i in xrange(self.__retina_length-self.__num_bits, self.__num_bits):
+
+        if (not isinstance(retina, list) and 
+            not isinstance(retina, np.ndarray)):
+            raise Exception('retina must be a list or np.ndarray')
+
+        num_cicles = self.__retina_length - self.__num_bits + 1
+
+        for i in xrange(0, num_cicles, self.__num_bits):
             bin_addr = self.__mapping_positions[i:i+self.__num_bits]
             int_addr = np.sum([2**i*retina[bin_addr[posi]]
                                for posi in xrange(self.__num_bits)])
-
             mem_index = i/self.__num_bits
             self.__memories[mem_index].add_value(addr=int_addr, value=1)
 
@@ -56,8 +81,15 @@ class Discriminator:
             self.__memories[-1].add_value(addr=int_addr, value=1)
 
     def predict(self, retina):
+
+        if (not isinstance(retina, list) and 
+            not isinstance(retina, np.ndarray)):
+            raise Exception('retina must be a list or np.ndarray')
+
         result = []
-        for i in xrange(0, self.__retina_length, self.__num_bits):
+
+        num_cicles = self.__retina_length - self.__num_bits + 1
+        for i in xrange(0, num_cicles, self.__num_bits):
             bin_addr = self.__mapping_positions[i:i+self.__num_bits]
             int_addr = np.sum([2**i*retina[bin_addr[posi]]
                                for posi in xrange(self.__num_bits)])
