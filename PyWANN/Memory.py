@@ -18,12 +18,6 @@ class Memory:
         return 2**self.__num_bits_addr
 
     def add_value(self, addr, value=1):
-        if (not isinstance(addr, int)):
-            raise Exception('addr must be a integer')
-
-        if (not isinstance(value, int)):
-            raise Exception('value must be a integer')
-
         if self.__is_cummulative:
             if addr in self.__data:
                 self.__data[addr] += value
@@ -37,10 +31,9 @@ class Memory:
             raise Exception('addr must be a integer')
 
         # ignore zero is for cases where 0 addr are
-        # not important 
+        # not important
         if self.__ignore_zero_addr and addr == 0:
             return 0
-
         if addr not in self.__data:
             return 0
         else:

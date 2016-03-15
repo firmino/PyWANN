@@ -34,17 +34,17 @@ class TestDiscriminator(unittest.TestCase):
 
     def test_classifier_positive(self):
         # example of T classes in a grig of 3x3
-        data1 = [1, 1, 1,
-                 0, 1, 0,
-                 0, 1, 0]
+        data1 = np.array([1, 1, 1,
+                          0, 1, 0,
+                          0, 1, 0])
 
-        data2 = [1, 1, 1,
-                 0, 1, 0,
-                 0, 0, 0]
+        data2 = np.array([1, 1, 1,
+                          0, 1, 0,
+                          0, 0, 0])
 
-        test_positive = [1, 1, 1,
-                         0, 1, 0,
-                         0, 1, 0]
+        test_positive = np.array([1, 1, 1,
+                                  0, 1, 0,
+                                  0, 1, 0])
 
         num_bits_addr = 3
         retina_length = 9
@@ -55,7 +55,6 @@ class TestDiscriminator(unittest.TestCase):
 
         d.add_training(data1)
         d.add_training(data2)
-        d.add_training(2)
 
 
         result = d.predict(test_positive)
