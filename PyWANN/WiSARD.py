@@ -44,7 +44,7 @@ class WiSARD:
         if (not isinstance(seed, int)):
             raise Exception('seed must be a boolean')
 
-         if (not isinstance(output_use_softmax, bool)):
+        if (not isinstance(output_use_softmax, bool)):
             raise Exception('output_use_softmax must be a boolean')
 
         self.__retina_length = retina_length
