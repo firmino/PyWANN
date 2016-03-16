@@ -15,7 +15,7 @@ class WiSARD:
                  ignore_zero_addr=False, 
                  randomize_positions=True,
                  seed=424242,
-                 output_use_softmax=False):
+                 use_softmax=False):
 
         if (not isinstance(retina_length, int)):
             raise Exception('retina_length must be a integer')
@@ -44,8 +44,8 @@ class WiSARD:
         if (not isinstance(seed, int)):
             raise Exception('seed must be a boolean')
 
-        if (not isinstance(output_use_softmax, bool)):
-            raise Exception('output_use_softmax must be a boolean')
+        if (not isinstance(use_softmax, bool)):
+            raise Exception('use_softmax must be a boolean')
 
         self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
@@ -56,7 +56,7 @@ class WiSARD:
         self.__ignore_zero_addr = ignore_zero_addr
         self.__randomize_positions = randomize_positions
         self.__seed = seed
-        self.__output_use_softmax = output_use_softmax
+        self.__use_softmax = use_softmax
 
         self.__discriminators = {}
 
@@ -82,9 +82,8 @@ class WiSARD:
             retina = X[i]
             label = y[i]
             self.__discriminators[label].add_training(retina)
-        
 
-    # 
+    #  X is a matrix of retinas (each line will be a retina)
     def predict(self, X):
         result = []
         discriminator_names = self.__discriminators.keys()
@@ -93,23 +92,44 @@ class WiSARD:
             result_value = np.array([self.__discriminators[class_name].predict(x) \
                                      for class_name in discriminator_names] )
 
-            result_sum = np.sum(result_value[:]>=1, axis=1) 
-            
+            result_sum = np.sum(result_value[:]>=1, axis=1)
+            soft_data = []
             if self.__bleaching:
                 b = self.__defaul_b_bleaching
-                confidence = self.__calc_confidence(result_sum)
+                
+                if self.__use_softmax:
+                    soft_data = self.__softmax[result_sum]
+                    confidence = self.__calc_confidence(soft_data)
+                else:
+                    confidence = self.__calc_confidence(result_sum)
 
                 while confidence < self.__confidence_threshold:
                     result_sum = np.sum(result_value[:]>=b, axis=1)
-                    confidence = self.__calc_confidence(result_sum)
+                    if self.__use_softmax:
+                        soft_data = self.__softmax[result_sum]
+                        confidence = self.__calc_confidence(soft_data)
+                    else:
+                        confidence = self.__calc_confidence(result_sum)
                     b += 1
 
-            result = { discriminator_names[i] : result_sum[i] for i in xrange(len(result_sum) )}
+                if self.__use_softmax:
+                    result.append(np.argmax(soft_data) )
+                else:
+                    result.append(np.argmax(result_sum))
+
+            else:
+                if self.__use_softmax:
+                    result.append(np.argmax(soft_data) )
+                else:
+                    result.append(np.argmax(result_sum))
 
         return result
         
+    def __softmax(self, data):
+        exp_sum = np.sum([np.e**x for x in data])
+        return np.e**data/exp_sum
+
     def __calc_confidence(self,results):
-            
         # getting max value
         max_value = results.max()
         if(max_value == 0):
