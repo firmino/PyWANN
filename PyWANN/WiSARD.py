@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-from PyWANN import Discriminator
+from Discriminator import Discriminator
 
 
 class WiSARD:
@@ -80,14 +80,21 @@ class WiSARD:
         # add training
         num_samples = len(y)
         for i in xrange(num_samples):
+
             retina = X[i]
             label = y[i]
+
+            if type(retina) is list:
+                retina = np.array(retina)
+
             self.__discriminators[label].add_training(retina)
 
     #  X is a matrix of retinas (each line will be a retina)
     def predict(self, X):
         result = []
         discriminator_names = self.__discriminators.keys()
+
+        X = np.array(X)  
 
         for x in X:
             res_disc = np.array([self.__discriminators[class_name].predict(x)
@@ -99,7 +106,7 @@ class WiSARD:
                 b = self.__defaul_b_bleaching
 
                 if self.__use_softmax:
-                    soft_data = self.__softmax[result_sum]
+                    soft_data = self.__softmax(result_sum)
                     confidence = self.__calc_confidence(soft_data)
                 else:
                     confidence = self.__calc_confidence(result_sum)
@@ -107,22 +114,29 @@ class WiSARD:
                 while confidence < self.__confidence_threshold:
                     result_sum = np.sum(res_disc[:] >= b, axis=1)
                     if self.__use_softmax:
-                        soft_data = self.__softmax[result_sum]
+                        soft_data = self.__softmax(result_sum)
                         confidence = self.__calc_confidence(soft_data)
                     else:
                         confidence = self.__calc_confidence(result_sum)
                     b += 1
 
                 if self.__use_softmax:
-                    result.append(np.argmax(soft_data))
+                    index = np.argmax(soft_data)
+                    result.append(discriminator_names[index])
                 else:
-                    result.append(np.argmax(result_sum))
+                    index = np.argmax(result_sum)
+                    result.append(discriminator_names[index])
             else:
                 if self.__use_softmax:
-                    result.append(np.argmax(soft_data))
+                    index = np.argmax(soft_data)
+                    result.append(discriminator_names[index])
                 else:
-                    result.append(np.argmax(result_sum))
+                    index = np.argmax(result_sum)
+                    result.append(discriminator_names[index])
         return result
+
+    def predict_proba(self, X):
+        pass
 
     def __softmax(self, data):
         exp_sum = np.sum(np.e**data)

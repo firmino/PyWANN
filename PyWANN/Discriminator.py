@@ -43,7 +43,7 @@ class Discriminator:
         num_memories = self.__retina_length/self.__num_bits_addr
         self.__memories = []
         for i in xrange(0, num_memories):
-            m = Memory(num_bits_addr_addr=self.__num_bits_addr,
+            m = Memory(num_bits_addr=self.__num_bits_addr,
                        is_cummulative=memory_is_cumulative,
                        ignore_zero_addr=ignore_zero_addr)
             self.__memories.append(m)
