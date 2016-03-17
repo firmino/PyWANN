@@ -3,6 +3,7 @@
 import numpy as np
 from PyWANN import Discriminator
 
+
 class WiSARD:
 
     def __init__(self,
@@ -12,7 +13,7 @@ class WiSARD:
                  memory_is_cumulative=True,
                  defaul_b_bleaching=1,
                  confidence_threshold=0.1,
-                 ignore_zero_addr=False, 
+                 ignore_zero_addr=False,
                  randomize_positions=True,
                  seed=424242,
                  use_softmax=False):
@@ -29,7 +30,7 @@ class WiSARD:
         if (not isinstance(memory_is_cumulative, bool)):
             raise Exception('memory_is_cumulative must be a boolean')
 
-        if (not isinstance(defaul_b_bleaching, int))
+        if (not isinstance(defaul_b_bleaching, int)):
             raise Exception('defaul_b_bleaching must be a integer ')
 
         if (not isinstance(confidence_threshold, float)):
@@ -60,24 +61,24 @@ class WiSARD:
 
         self.__discriminators = {}
 
-
-    #  X is a matrix of retinas (each line will be a retina)
-    #  y is a list of label (each line defina a retina in the same position in Y)
+    # X is a matrix of retinas (each line will be a retina)
+    # y is a list of label (each line defina a retina in the
+    # same position in Y)
     def fit(self, X, y):
         # creating discriminators
         clazz = set(y)
         for clazz_name in clazz:
-            disc = Discriminator(retina_length= self.__retina_length,
-                                 num_bits_addr=self.__num_bits_addr,
-                                 memory_is_cumulative=self.__memory_is_cumulative,
-                                 ignore_zero_addr=self.__ignore_zero_addr,
-                                 random_positions=self.__randomize_positions,
-                                 seed=self.__seed)
+            d = Discriminator(retina_length=self.__retina_length,
+                              num_bits_addr=self.__num_bits_addr,
+                              memory_is_cumulative=self.__memory_is_cumulative,
+                              ignore_zero_addr=self.__ignore_zero_addr,
+                              random_positions=self.__randomize_positions,
+                              seed=self.__seed)
 
-            self.__discriminators[clazz_name] = disc
+            self.__discriminators[clazz_name] = d
 
         # add training
-        num_samples =  len(y)
+        num_samples = len(y)
         for i in xrange(num_samples):
             retina = X[i]
             label = y[i]
@@ -89,14 +90,14 @@ class WiSARD:
         discriminator_names = self.__discriminators.keys()
 
         for x in X:
-            result_value = np.array([self.__discriminators[class_name].predict(x) \
-                                     for class_name in discriminator_names] )
+            res_disc = np.array([self.__discriminators[class_name].predict(x)
+                                 for class_name in discriminator_names])
 
-            result_sum = np.sum(result_value[:]>=1, axis=1)
+            result_sum = np.sum(res_disc[:] >= 1, axis=1)
             soft_data = []
             if self.__bleaching:
                 b = self.__defaul_b_bleaching
-                
+
                 if self.__use_softmax:
                     soft_data = self.__softmax[result_sum]
                     confidence = self.__calc_confidence(soft_data)
@@ -104,7 +105,7 @@ class WiSARD:
                     confidence = self.__calc_confidence(result_sum)
 
                 while confidence < self.__confidence_threshold:
-                    result_sum = np.sum(result_value[:]>=b, axis=1)
+                    result_sum = np.sum(res_disc[:] >= b, axis=1)
                     if self.__use_softmax:
                         soft_data = self.__softmax[result_sum]
                         confidence = self.__calc_confidence(soft_data)
@@ -113,23 +114,21 @@ class WiSARD:
                     b += 1
 
                 if self.__use_softmax:
-                    result.append(np.argmax(soft_data) )
+                    result.append(np.argmax(soft_data))
                 else:
                     result.append(np.argmax(result_sum))
-
             else:
                 if self.__use_softmax:
-                    result.append(np.argmax(soft_data) )
+                    result.append(np.argmax(soft_data))
                 else:
                     result.append(np.argmax(result_sum))
-
         return result
-        
+
     def __softmax(self, data):
-        exp_sum = np.sum([np.e**x for x in data])
+        exp_sum = np.sum(np.e**data)
         return np.e**data/exp_sum
 
-    def __calc_confidence(self,results):
+    def __calc_confidence(self, results):
         # getting max value
         max_value = results.max()
         if(max_value == 0):
@@ -139,7 +138,7 @@ class WiSARD:
         second_max = max_value
         if results[results < max_value].size > 0:
             second_max = results[results < max_value].max()
-        
+
         # calculating confidence value
         c = 1 - float(second_max) / float(max_value)
 
