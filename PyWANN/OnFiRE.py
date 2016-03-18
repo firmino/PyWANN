@@ -9,7 +9,7 @@ class OnFiRE:
                  class_names,
                  regularization_lambda=13,
                  bagging_percentage=63.7,
-                 min_num_bits=2,
+                 min_num_bits=8,
                  max_num_bits=32,
                  ignore_zero=False):
 
