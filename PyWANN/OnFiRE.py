@@ -36,34 +36,38 @@ class OnFiRE:
         raise Exception("Loss Function not defined %s"%(self.__loss))
 
     def fit(self, X, y, early_stopping_rounds, eval_set=None):
+        self.class_ = np.unique(y)
         self.__X = X
         self.__y = y
         self.__eval_set = eval_set
-        clf_vector = []
+        self.__clfs = []
         n_round = 0
         objective_before = np.inf
 
         while(n_round < early_stopping_rounds):
-            clf_vector.append(self.__get_clf())
+            self.__clfs.append(self.__get_clf())
             X_, y_, X_eval, y_eval = self.__subsample()
-            clf_vector[-1].fit(X_, y_)
+            self.__clfs[-1].fit(X_, y_)
             if(eval_set == None):
-                ypred = self.predict(X_eval)
+                ypred = self.predict_proba(X_eval)
                 obj_value = self.__objective_function(y_eval, ypred)
             else:
-                ypred = self.predict(eval_set[0])
+                ypred = self.predict_proba(eval_set[0])
                 obj_value = self.__objective_function(eval_set[1], ypred)
 
             if objective_before > obj_value:
                 objective_before = obj_value
                 n_round = 0
-                
+
             else:
                 n_round += 1
-                del(clf_vector[-1])
+                del(self.__clfs[-1])
             
-    def predict(self, x):
-        pass
+    def predict_proba(self, X):
+        for clf in self.__clfs:
+            y_proba += clf.predict_proba(X)
+        y_proba/len(self.__clfs)
+        return y_proba
 
     def __subsample(self):
         X_size = len(self.__X)
@@ -101,9 +105,7 @@ class OnFiRE:
             return self.__squared_error(y, ypred)
 
     def __cross_entropy(self, y, ypred):
-        summing = 0
-        for i in xrange(len(y)):
-            summing += y*
+        pass
 
     def __get_clf(self):
         num_bits_addr = np.random.randint(self.__min_bits, self.__max_bits)
