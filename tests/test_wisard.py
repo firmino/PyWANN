@@ -21,9 +21,8 @@ class TestWiSARD(unittest.TestCase):
         # training discriminators
         w.fit(X, y)
 
-
-        A_test = w.predict(A_samples)  # first 9 samples
-        T_test = w.predict(T_samples)  # first 9 samples
+        A_test = w.predict(A_samples)
+        T_test = w.predict(T_samples)
 
         tot_A = np.sum([1 for x in A_test if x == 'A'])
         tot_T = np.sum([1 for x in T_test if x == 'T'])
