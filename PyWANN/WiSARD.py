@@ -17,9 +17,7 @@ class WiSARD:
                  seed=424242,
                  use_softmax=False):
 
-        if (not isinstance(retina_length, int)):
-            raise Exception('retina_length must be a integer')
-
+        
         if (not isinstance(num_bits_addr, int)):
             raise Exception('num_bits must be a integer')
 
@@ -58,6 +56,7 @@ class WiSARD:
         self.__use_softmax = use_softmax
 
         self.__discriminators = {}
+        self.classes_ = []
 
     # X is a matrix of retinas (each line will be a retina)
     # y is a list of label (each line defina a retina in the
@@ -66,6 +65,7 @@ class WiSARD:
         # creating discriminators
         self.__retina_length = len(X[0])
         clazz = set(y)
+
         for clazz_name in clazz:
             d = Discriminator(retina_length=self.__retina_length,
                               num_bits_addr=self.__num_bits_addr,
@@ -75,6 +75,7 @@ class WiSARD:
                               seed=self.__seed)
 
             self.__discriminators[clazz_name] = d
+        self.classes_ = self.__discriminators.keys()
 
         # add training
         num_samples = len(y)
@@ -90,17 +91,28 @@ class WiSARD:
 
     #  X is a matrix of retinas (each line will be a retina)
     def predict(self, X):
+        final_result = []
+
+        results = self.predict_proba(X)
+        for res in results:
+            index = np.argmax(res)
+            final_result.append(self.classes_[index])
+
+        return final_result
+
+    
+    def predict_proba(self, X):
         result = []
         discriminator_names = self.__discriminators.keys()
 
-        X = np.array(X)  
-
+        X = np.array(X)
         for x in X:
             res_disc = np.array([self.__discriminators[class_name].predict(x)
                                  for class_name in discriminator_names])
 
             result_sum = np.sum(res_disc[:] >= 1, axis=1)
             soft_data = []
+
             if self.__bleaching:
                 b = self.__defaul_b_bleaching
 
@@ -120,22 +132,21 @@ class WiSARD:
                     b += 1
 
                 if self.__use_softmax:
-                    index = np.argmax(soft_data)
-                    result.append(discriminator_names[index])
+                    soft_data = np.array(soft_data)
+                    result.append(soft_data/soft_data.max())
                 else:
-                    index = np.argmax(result_sum)
-                    result.append(discriminator_names[index])
+                    result_sum = np.array(result_sum)
+                    result.append(result_sum/result_sum.max())
             else:
                 if self.__use_softmax:
-                    index = np.argmax(soft_data)
-                    result.append(discriminator_names[index])
+                    soft_data = np.array(soft_data)
+                    result.append(soft_data/soft_data.max())
                 else:
-                    index = np.argmax(result_sum)
-                    result.append(discriminator_names[index])
-        return result
+                    result_sum = np.array(result_sum)
+                    result.append(result_sum/result_sum.max())
 
-    def predict_proba(self, X):
-        pass
+        return np.array(result)
+
 
     def __softmax(self, data):
         exp_sum = np.sum(np.e**data)
