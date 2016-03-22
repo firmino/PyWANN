@@ -7,7 +7,6 @@ from Discriminator import Discriminator
 class WiSARD:
 
     def __init__(self,
-                 retina_length,
                  num_bits_addr,
                  bleaching=True,
                  memory_is_cumulative=True,
@@ -48,7 +47,6 @@ class WiSARD:
         if (not isinstance(use_softmax, bool)):
             raise Exception('use_softmax must be a boolean')
 
-        self.__retina_length = retina_length
         self.__num_bits_addr = num_bits_addr
         self.__bleaching = bleaching
         self.__memory_is_cumulative = memory_is_cumulative
@@ -66,6 +64,7 @@ class WiSARD:
     # same position in Y)
     def fit(self, X, y):
         # creating discriminators
+        self.__retina_length = len(X[0])
         clazz = set(y)
         for clazz_name in clazz:
             d = Discriminator(retina_length=self.__retina_length,

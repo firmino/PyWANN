@@ -1,124 +1,117 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-
+from WiSARD import WiSARD
 
 class OnFiRE:
 
     def __init__(self,
-                 retina_length,
-                 class_names,
-                 regularization_lambda=13,
-                 bagging_percentage=63.7,
-                 min_num_bits=8,
-                 max_num_bits=32,
-                 ignore_zero=False):
+                 loss = "cross_entropy",
+                 max_bits = 64,
+                 min_bits = 2,
+                 bleaching = True,
+                 memory_is_cumulative=True,
+                 defaul_b_bleaching=1,
+                 bleaching = True,
+                 max_w = 100,
+                 nthread = 4,
+                 seed = 0,
+                 reg_lambda = 1,
+                 subsample = 0.1,
+                 verbose = True):
 
-        self.__retina_length = retina_length
-        self.__class_names = class_names
-        self.__regularization_lambda = regularization_lambda
-        self.__bagging_percentage = bagging_percentage
-        self.__min_num_bits = min_num_bits
-        self.__max_num_bits = max_num_bits
-        self.__ignore_zero = ignore_zero
-        self.__epsilon = 0.02  # used to compare objective values
-        self.__wisards = []
+    self.__bleaching = bleaching
+    self.__memory_is_cumulative = memory_is_cumulative
+    self.__defaul_b_bleaching = defaul_b_bleaching
+    self.__max_w = max_w
+    self.__nthread = nthread
+    self.__reg_lambda = reg_lambda
+    self.__subsample = subsample
+    self.__loss = loss
+    self.__max_bits = max_bits
+    self.__min_bits = min_bits
 
-    def fit(self, X, y):
+    np.random.seed(seed=seed)
 
-        test_size = X.shape[0]
-        num_samples = int(test_size * self.bagging_percentage)
+    if(not loss in ["cross_entropy", "absolute_error", "squared_error"]):
+        raise Exception("Loss Function not defined %s"%(self.__loss))
 
-        indexes = np.arange(test_size)  # generating all posible positions
+    def fit(self, X, y, early_stopping_rounds, eval_set=None):
+        self.__X = X
+        self.__y = y
+        self.__eval_set = eval_set
+        clf_vector = []
+        n_round = 0
+        objective_before = np.inf
 
-        loss_value = 1  # max possible errors (100%)
-        regularization_value = 0  # there is no WiSARDs
-
-        objective_value = self.__calc_objective_value(loss_value, regularization_value)
-        previos_objective_value = objective_value + 1  # is bigger to running the first interation
-
-        # minimizing objective value
-        while (previos_objective_value - objective_value) > self.__epsilon:
-
-            # random number of bits for addr in wisard
-            num_bits_addr = np.random.randint(self.__min_num_bits, self.__max_num_bits)
-
-            # creating a WiSARD
-            w = Wisard(retina_length=self.__retina_length,
-                       num_bits_addr=num_bits_addr,
-                       ignore_zero_addr=self.__ignore_zero,
-                       bleaching=False,
-                       memory_is_cumulative=False)
-
-            # creating discriminators
-            for class_name in self.__class_names:
-                w.create_discriminator(class_name)
-
-            # sampling positions
-            np.random.shuffle(indexes)  # shuffle indexes to get diferent positions
-            selected_positions = indexes[0:num_samples]
-            X_test = [X[i] for i in selected_positions]
-            y_test = [y[i] for i in selected_positions]
-
-            # training
-            training_size = int(len(X_test) * 0.8)
-            test_size = int(len(X_test) * 0.2)
-            w.fit(X_test[0: training_size], y_test[0: training_size])
-            self.__wisards.append(w)
-
-            # testing
-            count_hits = 0
-            for i in xrange(training_size, training_size + test_size):
-                X_i = X_test[i]
-                y_i = y_test[i]
-
-                selected_class = self.predict(X_i)
-                if selected_class == y_i:
-                    count_hits += 1
-
-            # calculating objective value
-            loss_value = 1 - (count_hits / float(test_size))  # loss value is not square error, check after if results won't be good
-            regularization_value += num_bits_addr
-
-            previos_objective_value = objective_value
-            objective_value = self.__calc_objective_value(loss_value, regularization_value)
-
-    def predict(self, x):
-        results = {}
-
-        for w in self.__wisards:
-
-            partial_result = w.predict(x)
-            clazz, confidence = self.__calc_result_with_confidence(partial_result)
-
-            if clazz in results:
-                results[clazz] += confidence
+        while(n_round < early_stopping_rounds):
+            clf_vector.append(self.__get_clf())
+            X_, y_, X_eval, y_eval = self.__subsample()
+            clf_vector[-1].fit(X_, y_)
+            if(eval_set == None):
+                ypred = self.predict(X_eval)
+                obj_value = self.__objective_function(y_eval, ypred)
             else:
-                results[clazz] = confidence
+                ypred = self.predict(eval_set[0])
+                obj_value = self.__objective_function(eval_set[1], ypred)
 
-        selected_class = max(results, key=results.get)
-        return selected_class
+            if objective_before > obj_value:
+                objective_before = obj_value
+                n_round = 0
+                
+            else:
+                n_round += 1
+                del(clf_vector[-1])
+            
+    def predict(self, x):
+        pass
 
-    def __calc_result_with_confidence(self, results):
+    def __subsample(self):
+        X_size = len(self.__X)
+        fit_size = X_size*self.__subsample
+        aux = range(X_size)
+        np.random.shuffle(aux)
 
-        values = np.array(results.values())
+        X_fit = []
+        y_fit = []
+        X_eval = []
+        y_eval = []
 
-        # getting max value
-        max_value = values.max()
-        if(max_value == 0):
-            return 0
+        for val in aux[:fit_size]:
+            X_fit += [self.__X[val]]
+            y_fit += [self.__y[val]]
 
-        # getting second max value
-        second_max = max_value
-        if values[values < max_value].size > 0:
-            second_max = values[values < max_value].max()
+        if(self.__eval_set == None):
+            for val in aux[fit_size:fit_size*2]:
+                X_eval += [self.__X[val]]
+                y_eval += [self.__y[val]]
 
-        # calculating confidence value
-        c = 1 - float(second_max) / float(max_value)
+        return X_fit, y_fit, X_eval, y_eval
 
-        # getting the max element
-        selected_class = max(result, key=result.get)
+    def __objective_function(self, y, ypred):
+        l = self.__loss_function(y, ypred)
+        r = self.__reg_function()
+        return l + self.__reg_lambda*r
 
-        return selected_class, c
+    def __loss_function(self, y, ypred):
+        if(loss == "cross_entropy"):
+            return self.__cross_entropy(y, ypred)
+        if(loss == "absolute_error"):
+            return self.__absolute_error(y, ypred)
+        if(loss == "squared_error"):
+            return self.__squared_error(y, ypred)
 
-    def __calc_objective_value(self, loss_value, regularization_value):
-        return loss_value + self.__regularization_lambda * regularization_value
+    def __cross_entropy(self, y, ypred):
+        summing = 0
+        for i in xrange(len(y)):
+            summing += y*
+
+    def __get_clf(self):
+        num_bits_addr = np.random.randint(self.__min_bits, self.__max_bits)
+        seed = np.random.randint(0,10000)
+        confidence_threshold = np.random.rand()
+        return WiSARD(num_bits_addr,
+                      bleaching = self.__bleaching,
+                      memory_is_cumulative = self.__memory_is_cumulative,
+                      defaul_b_bleaching = self.__defaul_b_bleaching,
+                      confidence_threshold = confidence_threshold,
+                      seed=seed)
