@@ -11,7 +11,6 @@ class OnFiRE:
                  bleaching = True,
                  memory_is_cumulative=True,
                  defaul_b_bleaching=1,
-                 bleaching = True,
                  max_w = 100,
                  nthread = 4,
                  seed = 0,
@@ -19,21 +18,21 @@ class OnFiRE:
                  subsample = 0.1,
                  verbose = True):
 
-    self.__bleaching = bleaching
-    self.__memory_is_cumulative = memory_is_cumulative
-    self.__defaul_b_bleaching = defaul_b_bleaching
-    self.__max_w = max_w
-    self.__nthread = nthread
-    self.__reg_lambda = reg_lambda
-    self.__subsample = subsample
-    self.__loss = loss
-    self.__max_bits = max_bits
-    self.__min_bits = min_bits
+        self.__bleaching = bleaching
+        self.__memory_is_cumulative = memory_is_cumulative
+        self.__defaul_b_bleaching = defaul_b_bleaching
+        self.__max_w = max_w
+        self.__nthread = nthread
+        self.__reg_lambda = reg_lambda
+        self.__subsample = subsample
+        self.__loss = loss
+        self.__max_bits = max_bits
+        self.__min_bits = min_bits
 
-    np.random.seed(seed=seed)
+        np.random.seed(seed=seed)
 
-    if(not loss in ["cross_entropy", "absolute_error", "squared_error"]):
-        raise Exception("Loss Function not defined %s"%(self.__loss))
+        if(not loss in ["cross_entropy", "absolute_error", "squared_error"]):
+            raise Exception("Loss Function not defined %s"%(self.__loss))
 
     def fit(self, X, y, early_stopping_rounds, eval_set=None):
         self.class_ = np.unique(y)
@@ -46,7 +45,15 @@ class OnFiRE:
 
         while(n_round < early_stopping_rounds):
             self.__clfs.append(self.__get_clf())
-            X_, y_, X_eval, y_eval = self.__subsample()
+            continue_ = True
+            while(continue_):
+                X_, y_, X_eval, y_eval = self.__subsample()
+                if(len(self.class_) != len(np.unique(y_))):
+                    if(verbose):
+                        print "Alert: subsample may be too small."
+                else:
+                    continue_ = False
+
             self.__clfs[-1].fit(X_, y_)
             if(eval_set == None):
                 ypred = self.predict_proba(X_eval)
@@ -88,7 +95,7 @@ class OnFiRE:
             for val in aux[fit_size:fit_size*2]:
                 X_eval += [self.__X[val]]
                 y_eval += [self.__y[val]]
-
+                
         return X_fit, y_fit, X_eval, y_eval
 
     def __objective_function(self, y, ypred):
@@ -105,7 +112,12 @@ class OnFiRE:
             return self.__squared_error(y, ypred)
 
     def __cross_entropy(self, y, ypred):
-        pass
+        yh = self.__hot_encoder(y)
+        summing = 0
+        for i in xrange(len(yh)):
+            pos = np.argmax(ypred[i])
+            summing += y[i][pos] * ypred[i][pos]
+        return summing
 
     def __get_clf(self):
         num_bits_addr = np.random.randint(self.__min_bits, self.__max_bits)
@@ -117,3 +129,16 @@ class OnFiRE:
                       defaul_b_bleaching = self.__defaul_b_bleaching,
                       confidence_threshold = confidence_threshold,
                       seed=seed)
+
+    def __hot_encoder(self, y):
+        yh = np.zeros((len(y), len(self.class_)))
+        for i in xrange(yh.shape[0]):
+            pos = self.class_.index(y[i])
+            yh[i][pos] = 1
+        return yh
+
+if __name__ == '__main__':
+    fire = OnFiRE()
+    y = [1,2,1,1,1,1,2,1,1,1,3]
+    fire.class_ = [2,1,3]
+    print fire.hot_encoder(y)
