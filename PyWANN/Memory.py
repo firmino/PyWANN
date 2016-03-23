@@ -28,9 +28,6 @@ class Memory:
             self.__data[addr] = 1
 
     def get_value(self, addr):
-        if (not isinstance(addr, int)):
-            raise Exception('addr must be a integer')
-
         # ignore zero is for cases where 0 addr are
         # not important
         if self.__ignore_zero_addr and addr == 0:
@@ -41,9 +38,6 @@ class Memory:
             return self.__data[addr]
 
     def __int_to_binary(self, addr):
-        if (not isinstance(addr, int)):
-            raise Exception('addr must be a integer')
-
         bin_addr = np.zeros(self.__num_bits_addr)
         quoc = addr
         for i in xrange(self.__num_bits_addr):

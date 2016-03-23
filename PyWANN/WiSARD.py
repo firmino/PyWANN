@@ -124,6 +124,10 @@ class WiSARD:
 
                 while confidence < self.__confidence_threshold:
                     result_sum = np.sum(res_disc[:] >= b, axis=1)
+                    if(np.sum(result_sum) == 0):
+                        result_sum = np.sum(res_disc[:] >= 1, axis=1)
+                        break
+
                     if self.__use_softmax:
                         soft_data = self.__softmax(result_sum)
                         confidence = self.__calc_confidence(soft_data)
@@ -133,17 +137,17 @@ class WiSARD:
 
                 if self.__use_softmax:
                     soft_data = np.array(soft_data)
-                    result.append(soft_data/soft_data.max())
+                    result.append(soft_data/np.sum(soft_data, dtype=np.float32))
                 else:
                     result_sum = np.array(result_sum)
-                    result.append(result_sum/result_sum.max())
+                    result.append(result_sum/np.sum(result_sum, dtype=np.float32))
             else:
                 if self.__use_softmax:
                     soft_data = np.array(soft_data)
-                    result.append(soft_data/soft_data.max())
+                    result.append(soft_data/np.sum(soft_data, dtype=np.float32))
                 else:
                     result_sum = np.array(result_sum)
-                    result.append(result_sum/result_sum.max())
+                    result.append(result_sum/np.sum(result_sum, dtype=np.float32))
 
         return np.array(result)
 
@@ -151,6 +155,9 @@ class WiSARD:
     def __softmax(self, data):
         exp_sum = np.sum(np.e**data)
         return np.e**data/exp_sum
+
+    def get_num_bits(self):
+        return self.__num_bits_addr
 
     def __calc_confidence(self, results):
         # getting max value

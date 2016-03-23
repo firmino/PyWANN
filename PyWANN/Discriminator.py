@@ -51,7 +51,7 @@ class Discriminator:
         # if there is rest positions
         if retina_length % num_bits_addr > 0:
             num_rest_positions = retina_length % num_bits_addr
-            m = Memory(num_bits_addr_addr=num_rest_positions,
+            m = Memory(num_bits_addr=num_rest_positions,
                        is_cummulative=memory_is_cumulative,
                        ignore_zero_addr=ignore_zero_addr)
             self.__memories.append(m)
@@ -74,7 +74,7 @@ class Discriminator:
 
         # if there is rest positions
         if self.__retina_length % self.__num_bits_addr > 0:
-            num_rest_positions = self._retina_length % self.__num_bits_addr
+            num_rest_positions = self.__retina_length % self.__num_bits_addr
             bin_addr = self.__mapping_positions[-num_rest_positions:]
             int_addr = np.sum([2**i*retina[bin_addr[posi]]
                                for posi in xrange(num_rest_positions)])
