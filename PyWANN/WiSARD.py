@@ -14,10 +14,8 @@ class WiSARD:
                  confidence_threshold=0.1,
                  ignore_zero_addr=False,
                  randomize_positions=True,
-                 seed=424242,
-                 use_softmax=False):
+                 seed=424242):
 
-        
         if (not isinstance(num_bits_addr, int)):
             raise Exception('num_bits must be a integer')
 
@@ -42,9 +40,6 @@ class WiSARD:
         if (not isinstance(seed, int)):
             raise Exception('seed must be a boolean')
 
-        if (not isinstance(use_softmax, bool)):
-            raise Exception('use_softmax must be a boolean')
-
         self.__num_bits_addr = num_bits_addr
         self.__bleaching = bleaching
         self.__memory_is_cumulative = memory_is_cumulative
@@ -53,10 +48,12 @@ class WiSARD:
         self.__ignore_zero_addr = ignore_zero_addr
         self.__randomize_positions = randomize_positions
         self.__seed = seed
-        self.__use_softmax = use_softmax
 
         self.__discriminators = {}
         self.classes_ = []
+
+    def get_num_bits(self):
+        return self.__num_bits_addr
 
     # X is a matrix of retinas (each line will be a retina)
     # y is a list of label (each line defina a retina in the
@@ -75,12 +72,12 @@ class WiSARD:
                               seed=self.__seed)
 
             self.__discriminators[clazz_name] = d
+        
         self.classes_ = self.__discriminators.keys()
 
         # add training
         num_samples = len(y)
         for i in xrange(num_samples):
-
             retina = X[i]
             label = y[i]
 
@@ -100,64 +97,50 @@ class WiSARD:
 
         return final_result
 
-    
     def predict_proba(self, X):
         result = []
-        discriminator_names = self.__discriminators.keys()
 
         X = np.array(X)
         for x in X:
-            res_disc = np.array([self.__discriminators[class_name].predict(x)
-                                 for class_name in discriminator_names])
-
-            result_sum = np.sum(res_disc[:] >= 1, axis=1)
-            soft_data = []
 
             if self.__bleaching:
-                b = self.__defaul_b_bleaching
-
-                if self.__use_softmax:
-                    soft_data = self.__softmax(result_sum)
-                    confidence = self.__calc_confidence(soft_data)
-                else:
-                    confidence = self.__calc_confidence(result_sum)
-
-                while confidence < self.__confidence_threshold:
-                    result_sum = np.sum(res_disc[:] >= b, axis=1)
-                    if(np.sum(result_sum) == 0):
-                        result_sum = np.sum(res_disc[:] >= 1, axis=1)
-                        break
-
-                    if self.__use_softmax:
-                        soft_data = self.__softmax(result_sum)
-                        confidence = self.__calc_confidence(soft_data)
-                    else:
-                        confidence = self.__calc_confidence(result_sum)
-                    b += 1
-
-                if self.__use_softmax:
-                    soft_data = np.array(soft_data)
-                    result.append(soft_data/np.sum(soft_data, dtype=np.float32))
-                else:
-                    result_sum = np.array(result_sum)
-                    result.append(result_sum/np.sum(result_sum, dtype=np.float32))
+                result_x = self.__predict_with_bleaching(x)
+                result.append(result_x)
             else:
-                if self.__use_softmax:
-                    soft_data = np.array(soft_data)
-                    result.append(soft_data/np.sum(soft_data, dtype=np.float32))
-                else:
-                    result_sum = np.array(result_sum)
-                    result.append(result_sum/np.sum(result_sum, dtype=np.float32))
+                result_x = self.__predict_without_bleaching(x)
+                result.append(result_x)
 
         return np.array(result)
 
+    def __predict_with_bleaching(self, x):
+        b = self.__defaul_b_bleaching
+        confidence = 0.0
+        result_partial = None
 
-    def __softmax(self, data):
-        exp_sum = np.sum(np.e**data)
-        return np.e**data/exp_sum
+        res_disc = np.array([self.__discriminators[class_name].predict(x)
+                             for class_name in self.classes_])
 
-    def get_num_bits(self):
-        return self.__num_bits_addr
+        while confidence < self.__confidence_threshold:
+            result_partial = np.sum(res_disc >= b, axis=1)
+
+            confidence = self.__calc_confidence(result_partial)
+            b += 1
+
+            if(np.sum(result_partial) == 0):
+                result_partial = np.sum(res_disc >= 1, axis=1)
+                break
+        result_sum = np.sum(result_partial, dtype=np.float32)
+        result = np.array(result_partial)/result_sum
+
+        return result
+
+    def __predict_without_bleaching(self, x):
+        res_disc = np.array([self.__discriminators[class_name].predict(x)
+                             for class_name in self.classes_])
+        result_partial = np.sum(res_disc, axis=1)
+        result_sum = np.sum(result_partial, dtype=np.float32)
+        result = np.array(result_partial)/result_sum
+        return result
 
     def __calc_confidence(self, results):
         # getting max value
@@ -165,8 +148,13 @@ class WiSARD:
         if(max_value == 0):
             return 0
 
+        # if there are two positions with same value
+        position = np.where(results == max_value)
+        if position[0].shape[0]>1:
+            return 0
+
         # getting second max value
-        second_max = max_value
+        second_max = results[results < max_value].max()
         if results[results < max_value].size > 0:
             second_max = results[results < max_value].max()
 

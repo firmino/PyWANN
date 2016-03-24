@@ -171,40 +171,42 @@ class OnFiRE:
         return yh
 
 if __name__ == '__main__':
-    from mnist import MNIST
     import random
     import time
     from sklearn.metrics import accuracy_score
-    mndata = MNIST("/home/rangel/Desktop/Dataset_MNIST")
-    X, y = mndata.load_training()
-    X_test, y_test = mndata.load_testing()
 
-    X = np.array(X)
-    for x in X:
-        x[x<128] = 0
-        x[x>=128] = 1
+    import cPickle
+    import gzip
 
-    seed = int(time.time())
-    random.seed(seed)
-    random.shuffle(X)
-    random.seed(seed)
-    random.shuffle(y)
+    f = gzip.open('/home/fabricio/Desktop/mnist.pkl.gz', 'rb')
+    train_set, valid_set, test_set = cPickle.load(f)
+    f.close()
 
-    X_test = X[1000:2000]
-    y_test = y[1000:2000]
+    X = np.array(train_set[0])
+    y = np.array(train_set[1])
+    
+    X_test = np.array(test_set[0])
+    y_test = np.array(test_set[1])
 
-    X = X[:1000]
-    y = y[:1000]   
+    
+    X[X<0.039] = 0
+    X[X>=0.039] = 1
+
+    
+    X_test[X_test<0.039] = 0
+    X_test[X_test>=0.039] = 1
 
     # clf = OnFiRE(bleaching = False, memory_is_cumulative = False, seed=int(time.time()))
     # clf.fit(X,y,eval_set=[X_test, y_test])
-
-    w = WiSARD(8,
+    w = WiSARD(16,
               bleaching = True,
               memory_is_cumulative = True,
               defaul_b_bleaching = 1,
-              confidence_threshold = 0.1,
-              seed=8383)
-    w.fit(X, y)
-    ypred = w.predict(X_test)
-    print accuracy_score(list(y_test), ypred)
+              confidence_threshold = 0.08,
+              seed=2344)
+
+    w.fit(X[:20000],y[:20000])
+    
+    ypred_test = w.predict(X_test[:1000])
+    print "ACC TEST: ",accuracy_score(y_test[:1000], ypred_test)
+    
