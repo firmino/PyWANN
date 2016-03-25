@@ -40,7 +40,7 @@ class Discriminator:
             np.random.seed(seed)
             np.random.shuffle(self.__mapping_positions)
 
-        num_memories = self.__retina_length/self.__num_bits_addr
+        num_memories = self.__retina_length//self.__num_bits_addr
         self.__memories = []
         for i in xrange(0, num_memories):
             m = Memory(num_bits_addr=self.__num_bits_addr,
@@ -67,8 +67,9 @@ class Discriminator:
 
         for i in xrange(0, num_cicles, self.__num_bits_addr):
             bin_addr = self.__mapping_positions[i:i+self.__num_bits_addr]
-            int_addr = np.sum([2**i*retina[bin_addr[posi]]
-                               for posi in xrange(self.__num_bits_addr)])
+            int_addr = np.sum([2**posi*retina[bin_addr[posi]]
+                               for posi in xrange(self.__num_bits_addr)],
+                              dtype=np.int64)
             mem_index = i/self.__num_bits_addr
             self.__memories[mem_index].add_value(addr=int_addr, value=1)
 
@@ -76,8 +77,9 @@ class Discriminator:
         if self.__retina_length % self.__num_bits_addr > 0:
             num_rest_positions = self.__retina_length % self.__num_bits_addr
             bin_addr = self.__mapping_positions[-num_rest_positions:]
-            int_addr = np.sum([2**i*retina[bin_addr[posi]]
-                               for posi in xrange(num_rest_positions)])
+            int_addr = np.sum([2**posi*retina[bin_addr[posi]]
+                               for posi in xrange(num_rest_positions)],
+                               dtype=np.int64)
             self.__memories[-1].add_value(addr=int_addr, value=1)
 
     def predict(self, retina):
@@ -93,8 +95,9 @@ class Discriminator:
         num_cicles = self.__retina_length - self.__num_bits_addr + 1
         for i in xrange(0, num_cicles, self.__num_bits_addr):
             bin_addr = self.__mapping_positions[i:i+self.__num_bits_addr]
-            int_addr = np.sum([2**i*retina[bin_addr[posi]]
-                               for posi in xrange(self.__num_bits_addr)])
+            int_addr = np.sum([2**posi*retina[bin_addr[posi]]
+                               for posi in xrange(self.__num_bits_addr)],
+                               dtype=np.int64)
             mem_index = i/self.__num_bits_addr
             value = self.__memories[mem_index].get_value(addr=int_addr)
             result.append(value)
@@ -103,8 +106,9 @@ class Discriminator:
         if self.__retina_length % self.__num_bits_addr > 0:
             num_rest_positions = self.__retina_length % self.__num_bits_addr
             bin_addr = self.__mapping_positions[-num_rest_positions:]
-            int_addr = np.sum([2**i*retina[bin_addr[posi]]
-                               for posi in xrange(num_rest_positions)])
+            int_addr = np.sum([2**posi*retina[bin_addr[posi]]
+                               for posi in xrange(num_rest_positions)],
+                               dtype=np.int64)
             value = self.__memories[-1].get_value(addr=int_addr)
             result.append(value)
 

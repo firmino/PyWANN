@@ -5,7 +5,7 @@ from WiSARD import WiSARD
 class OnFiRE:
 
     def __init__(self,
-                 loss = "squared_error",
+                 loss = "cross_entropy",
                  max_bits = 64,
                  min_bits = 2,
                  bleaching = True,
@@ -196,17 +196,17 @@ if __name__ == '__main__':
     X_test[X_test<0.039] = 0
     X_test[X_test>=0.039] = 1
 
-    # clf = OnFiRE(bleaching = False, memory_is_cumulative = False, seed=int(time.time()))
-    # clf.fit(X,y,eval_set=[X_test, y_test])
-    w = WiSARD(16,
-              bleaching = True,
-              memory_is_cumulative = True,
-              defaul_b_bleaching = 1,
-              confidence_threshold = 0.08,
-              seed=2344)
+    clf = OnFiRE(bleaching = True, memory_is_cumulative = True, seed=int(time.time()))
+    clf.fit(X[:1000],y[:1000],eval_set=[X_test[:1000], y_test[:1000]])
+    # w = WiSARD(16,
+    #           bleaching = True,
+    #           memory_is_cumulative = True,
+    #           defaul_b_bleaching = 2,
+    #           confidence_threshold = 0.03,
+    #           seed=2344)
 
-    w.fit(X[:20000],y[:20000])
+    # w.fit(X[:10000],y[:10000])
     
-    ypred_test = w.predict(X_test[:1000])
-    print "ACC TEST: ",accuracy_score(y_test[:1000], ypred_test)
+    # ypred_test = w.predict(X_test[:1000])
+    # print "ACC TEST: ",accuracy_score(y_test[:1000], ypred_test)
     
