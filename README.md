@@ -11,7 +11,7 @@ pip install git+git://github.com/firmino/PyWANN.git
 
 Python lists or Numpy array.
 
-X is a list retinas and y is a list of class related with each retina. 
+X is a list of retinas and y is a list of class related with each retina. 
 
 ex: 
 ```python
@@ -56,15 +56,12 @@ bleaching = False
 
 w = WiSARD(retina_length, num_bits_addr, bleaching)
 
-w.create_discriminator("A")
-w.create_discriminator("T")
 
 # training discriminators
-
-w.fit(X_A, y_A )
-w.fit(X_T, y_T )
+w.fit(X, y)
 
 
+# predicting class
 result = w.predict(X_test)  #  Result will be a dictionary using the classes as key and the WiSARD result as values
 
 
@@ -88,15 +85,10 @@ num_bits_addr = 2
 
 w = WiSARD(retina_length, num_bits_addr, bleaching)
 
-w.create_discriminator("A")
-w.create_discriminator("T")
-
 # training discriminators
+w.fit(X, y)
 
-w.fit(X_A, y_A )
-w.fit(X_T, y_T )
-
-
+# predicting class
 result = w.predict(X_test)  #  Result will be a dictionary using the classes as key and the WiSARD result as values
 
 
