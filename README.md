@@ -31,7 +31,7 @@ y = ['class_a','class_a','class_b','class_b','class_a','class_a','class_b','clas
 ### WiSARD Parameters
 1. retina_length: (INT) The length of the retina
 2. num_bits_addr: (INT) Number of bits used to build the memories
-3. bleaching : (BOOLEAN) If bleaching thechnique is active or not, default value is True
+3. bleaching : (BOOLEAN) If bleaching technique is active or not, default value is True
 4. confidence_threshold: (FLOAT) Confidence used by bleaching technique to solve tie problems, default is 0.1
 5. ignore_zero_addr : (BOOLEAN) The classification of sparse feature vectors can be improved excluding positions zeros. Default value is False
 6. defaul_b_bleaching : (INT) The initial value for bleaching technique. Default value is 1
@@ -81,7 +81,7 @@ result = w.predict(X_test)  #  Result will be a dictionary using the classes as 
 retina_length = 64
 num_bits_addr = 2
 
-w = WiSARD(retina_length, num_bits_addr, bleaching)
+w = WiSARD(retina_length, num_bits_addr)
 
 # training discriminators
 w.fit(X, y)
