@@ -44,9 +44,8 @@ y = ['class_a','class_a','class_b','class_b','class_a','class_a','class_b','clas
 2. Define the retina's length
 3. Set Bleaching to FALSE 
 4. Create a Wisard
-5. Create discriminators
-6. Fit with examples (trainning)
-7. Predict (classify)
+5. Fit with examples (trainning)
+6. Predict (classify)
 
 ```python
 
@@ -74,9 +73,8 @@ result = w.predict(X_test)  #  Result will be a dictionary using the classes as 
 2. Define the retina's length
 3. Set Bleaching to FALSE 
 4. Create a Wisard
-5. Create discriminators
-6. Fit with examples (trainning)
-7. Predict (classify)
+5. Fit with examples (trainning)
+6. Predict (classify)
 
 ```python
 
