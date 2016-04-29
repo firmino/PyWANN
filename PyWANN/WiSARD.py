@@ -1,229 +1,163 @@
 # -*- coding: utf-8 -*-
 
 import numpy as np
-import copy
+from Discriminator import Discriminator
 
-
-class Memory:
-
-    def __init__(self, num_bits_addr=2, is_cummulative=True, ignore_zero_addr=False):
-        
-        self.__data = {}
-        self.__num_bits_addr = num_bits_addr
-        self.__is_cummulative = is_cummulative
-        self.__ignore_zero_addr = ignore_zero_addr
-    
-    def get_memory_size(self):  
-        return 2**self.__num_bits_addr
-    
-    def add_value(self, addr, value=1):
-        
-        if (not isinstance( addr, int )):
-            raise Exception('addr must be a integer')
-
-        if self.__is_cummulative:
-            if addr in self.__data:
-                self.__data[addr] += value
-            else:
-                self.__data[addr] = value
-        else:
-            self.__data[addr] = 1
-
-    def get_value(self, addr):
-
-        # ignore zero is for cases where 0 addr are not important (is a parameter in the WiSARD)
-        if self.__ignore_zero_addr and addr == 0:
-            return 0
-
-        if addr not in self.__data:
-            return 0
-        else:
-            return self.__data[addr]
-
-    def __int_to_binary(self, addr):
-
-        bin_addr = np.zeros(self.__num_bits_addr)
-
-        quoc = addr
-        for i in xrange(self.__num_bits_addr):
-            rest = quoc % 2
-            quoc = quoc / 2
-
-            bin_addr [self.__num_bits_addr - 1 - i] = rest
-
-        return bin_addr
-
-
-    def get_part_DRASiW(self):
-
-        part_DRASiW =  np.zeros(self.__num_bits_addr)
-        
-        for addr_key in  self.__data:
-            value = self.__data[addr_key]
-            bin_addr = self.__int_to_binary(addr_key)
-
-            for bit_posi in xrange(len(bin_addr)):
-                bit = bin_addr[bit_posi]
-                
-                if bit == 1 and value > 0:
-
-                    if self.__is_cummulative:
-                        part_DRASiW[bit_posi] += value
-                    else:
-                        part_DRASiW[bit_posi] = 1
-
-        return part_DRASiW
-
-
-class Discriminator:
-
-    def __init__(self,
-                 retina_length,
-                 mapping_positions,
-                 memories):
-
-        self.__retina_length = retina_length        
-        self.__mapping_positions = mapping_positions
-        self.__memories = memories
-
-    def get_memories(self):
-        
-        return self.__memories
-
-    def get_memories_mapping(self):
-        
-        return self.__mapping_positions
-
-    def get_memory(self, index):
-        
-        return self.__memories[index]
-
-    def add_training(self, retina):
-
-        for (mem_index, mapping) in self.__mapping_positions.iteritems():
-            
-            #  calculating the position (addr) that will be insert a value into the memory
-            #  indexed by mem_index
-            addr = 0
-            for i in xrange(len(mapping)):
-                addr += 2 ** i * retina[ mapping[i] ] 
-
-            self.__memories[mem_index].add_value(addr)
-
-    def classify(self, retina):
-        
-        result = np.zeros(len(self.__memories))
-        for (mem_index, mapping) in self.__mapping_positions.iteritems():
-            
-            #  calculating the position (addr) that will be insert a value into the memory
-            #  indexed by mem_index
-            addr = 0
-            for i in xrange(len(mapping)):                
-                addr += 2 ** i * retina[ mapping[i] ] 
-
-            result[mem_index] = self.__memories[mem_index].get_value(addr)
-
-        return result
-
-    def get_DRASiW(self):
-
-        DRASiW = np.zeros(self.__retina_length)  # DRASiW is like a retina of stored positions
-        
-        for (mem_index, mapping) in self.__mapping_positions.iteritems():
-
-            DRASiW_part = self.__memories[mem_index].get_part_DRASiW()
-
-            for i in xrange(len(mapping)):
-                DRASiW[ mapping[i] ] = DRASiW_part[i]
-
-        return DRASiW
 
 class WiSARD:
 
     def __init__(self,
-                 retina_length,
                  num_bits_addr,
                  bleaching=True,
-                 confidence_threshold=0.1,
-                 ignore_zero_addr=False, 
+                 memory_is_cumulative=True,
                  defaul_b_bleaching=1,
+                 confidence_threshold=0.1,
+                 ignore_zero_addr=False,
                  randomize_positions=True,
-                 memory_is_cumulative=True):
+                 seed=424242):
 
-        self.__retina_length = retina_length
+        if (not isinstance(num_bits_addr, int)):
+            raise Exception('num_bits must be a integer')
+
+        if (not isinstance(bleaching, bool)):
+            raise Exception('bleaching must be a boolean')
+
+        if (not isinstance(memory_is_cumulative, bool)):
+            raise Exception('memory_is_cumulative must be a boolean')
+
+        if (not isinstance(defaul_b_bleaching, int)):
+            raise Exception('defaul_b_bleaching must be a integer ')
+
+        if (not isinstance(confidence_threshold, float)):
+            raise Exception('confidence_threshold must be a float')
+
+        if (not isinstance(ignore_zero_addr, bool)):
+            raise Exception('ignore_zero_addr must be a boolean')
+
+        if (not isinstance(randomize_positions, bool)):
+            raise Exception('randomize_positions must be a boolean')
+
+        if (not isinstance(seed, int)):
+            raise Exception('seed must be a boolean')
+
+        self.__num_bits_addr = num_bits_addr
         self.__bleaching = bleaching
+        self.__memory_is_cumulative = memory_is_cumulative
         self.__defaul_b_bleaching = defaul_b_bleaching
-        self.__discriminators = {}
         self.__confidence_threshold = confidence_threshold
-        
-        positions = np.arange(retina_length)
-        if randomize_positions:
-            np.random.shuffle(positions)
+        self.__ignore_zero_addr = ignore_zero_addr
+        self.__randomize_positions = randomize_positions
+        self.__seed = seed
 
-        #  spliting positions for each memory
-        self.__mapping_positions = { i/num_bits_addr : positions[i: i + num_bits_addr] \
-                                     for i in xrange(0, retina_length, num_bits_addr) }
+        self.__discriminators = {}
+        self.classes_ = []
 
-        #  num_bits_addr is calculate based that last memory will have a diferent number of bits (rest of positions)
-        self.__memories_template = { i/num_bits_addr:  Memory( num_bits_addr = len(self.__mapping_positions[i/num_bits_addr] ), 
-                                                               is_cummulative = memory_is_cumulative,
-                                                               ignore_zero_addr = ignore_zero_addr)  \
-                                   for i in xrange(0,retina_length, num_bits_addr)}
+    def get_num_bits(self):
+        return self.__num_bits_addr
 
-
-
-    def create_discriminator(self, name):
-        #  have to copy() memories or all discriminator will have the same set of memories
-        new_memories = copy.deepcopy(self.__memories_template)
-        self.__discriminators[name] = Discriminator(retina_length = self.__retina_length,
-                                                    mapping_positions = self.__mapping_positions,
-                                                    memories = new_memories) 
-        
-
-
-    #  X is a matrix of retinas (each line will be a retina)
-    #  y is a list of label (each line defina a retina in the same position in Y)
+    # X is a matrix of retinas (each line will be a retina)
+    # y is a list of label (each line defina a retina in the
+    # same position in Y)
     def fit(self, X, y):
-        num_samples =  len(y)
+        # creating discriminators
+        self.__retina_length = len(X[0])
+        clazz = set(y)
+
+        for clazz_name in clazz:
+            d = Discriminator(retina_length=self.__retina_length,
+                              num_bits_addr=self.__num_bits_addr,
+                              memory_is_cumulative=self.__memory_is_cumulative,
+                              ignore_zero_addr=self.__ignore_zero_addr,
+                              random_positions=self.__randomize_positions,
+                              seed=self.__seed)
+
+            self.__discriminators[clazz_name] = d
+        
+        self.classes_ = self.__discriminators.keys()
+
+        # add training
+        num_samples = len(y)
         for i in xrange(num_samples):
             retina = X[i]
             label = y[i]
-            self.__discriminators[label].add_training (retina)
-        
-    def predict(self, x):
-        
-        discriminator_names = [class_name for class_name in self.__discriminators]
 
-        result_value = np.array( [ self.__discriminators[class_name].classify(x) \
-                                    for class_name in discriminator_names] )
+            if type(retina) is list:
+                retina = np.array(retina)
 
-        result_sum = np.sum(result_value[:]>=1, axis=1) 
-        
-        if self.__bleaching:
-            b = self.__defaul_b_bleaching
-            confidence = self.__calc_confidence(result_sum)
+            self.__discriminators[label].add_training(retina)
 
-            while confidence < self.__confidence_threshold:
-                result_sum = np.sum(result_value[:]>=b, axis=1)
-                confidence = self.__calc_confidence(result_sum)
-                b += 1
+    #  X is a matrix of retinas (each line will be a retina)
+    def predict(self, X):
+        final_result = []
 
-        result = { discriminator_names[i] : result_sum[i] for i in xrange(len(result_sum) )}
+        results = self.predict_proba(X)
+        for res in results:
+            index = np.argmax(res)
+            final_result.append(self.classes_[index])
+
+        return final_result
+
+    def predict_proba(self, X):
+        result = []
+
+        X = np.array(X)
+        for x in X:
+
+            if self.__bleaching:
+                result_x = self.__predict_with_bleaching(x)
+                result.append(result_x)
+            else:
+                result_x = self.__predict_without_bleaching(x)
+                result.append(result_x)
+
+        return np.array(result)
+
+    def __predict_with_bleaching(self, x):
+        b = self.__defaul_b_bleaching
+        confidence = 0.0
+        result_partial = None
+
+        res_disc = np.array([self.__discriminators[class_name].predict(x)
+                             for class_name in self.classes_])
+
+        while confidence < self.__confidence_threshold:
+            result_partial = np.sum(res_disc >= b, axis=1)
+
+            confidence = self.__calc_confidence(result_partial)
+            b += 1
+
+            if(np.sum(result_partial) == 0):
+                result_partial = np.sum(res_disc >= 1, axis=1)
+                break
+        result_sum = np.sum(result_partial, dtype=np.float32)
+        result = np.array(result_partial)/result_sum
 
         return result
-        
-    def __calc_confidence(self,results):
-            
+
+    def __predict_without_bleaching(self, x):
+        res_disc = np.array([self.__discriminators[class_name].predict(x)
+                             for class_name in self.classes_])
+        result_partial = np.sum(res_disc, axis=1)
+        result_sum = np.sum(result_partial, dtype=np.float32)
+        result = np.array(result_partial)/result_sum
+        return result
+
+    def __calc_confidence(self, results):
         # getting max value
         max_value = results.max()
         if(max_value == 0):
             return 0
 
+        # if there are two positions with same value
+        position = np.where(results == max_value)
+        if position[0].shape[0]>1:
+            return 0
+
         # getting second max value
-        second_max = max_value
+        second_max = results[results < max_value].max()
         if results[results < max_value].size > 0:
             second_max = results[results < max_value].max()
-        
+
         # calculating confidence value
         c = 1 - float(second_max) / float(max_value)
 
